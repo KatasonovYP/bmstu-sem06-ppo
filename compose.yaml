@@ -1,0 +1,45 @@
+name: stocks_tracker
+
+services:
+  db_postgres:
+    image: postgres:16
+    container_name: db_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_DB: stocks_tracker
+      PGDATA: /var/lib/postgresql/data
+      TZ: Europe/Moscow
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres/data:/var/lib/postgresql/data
+      # - ./postgres/init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin stocks_tracker"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend
+    restart: always
+    depends_on:
+      db_postgres:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgres://admin:1234@localhost:5432/stocks_tracker
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    name: app_network
