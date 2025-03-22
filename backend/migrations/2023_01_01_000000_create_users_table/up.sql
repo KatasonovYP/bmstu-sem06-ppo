@@ -1,6 +1,7 @@
 CREATE TABLE users (
   id SERIAL PRIMARY KEY,
-  name VARCHAR NOT NULL,
-  email VARCHAR NOT NULL UNIQUE,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+  tg_id INT NOT NULL UNIQUE,
+  username VARCHAR NOT NULL UNIQUE,
+  first_name VARCHAR,
+  second_name VARCHAR
 );
