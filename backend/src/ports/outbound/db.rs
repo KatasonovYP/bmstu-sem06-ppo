@@ -10,15 +10,15 @@ pub trait UserRepository: Send + Sync + 'static {
 
 #[async_trait]
 pub trait ActiveRepository: Send + Sync + 'static {
-    async fn get_user(&self, id: u32) -> Result<ActiveEntity, DomainError>;
-    async fn create_active(&self, user: ActiveEntity) -> Result<ActiveEntity, DomainError>;
+    async fn get_active(&self, active_id: u32) -> Result<ActiveEntity, DomainError>;
+    async fn create_active(&self, active: ActiveEntity) -> Result<ActiveEntity, DomainError>;
 }
 
 #[async_trait]
 pub trait NotificationRepository: Send + Sync + 'static {
-    async fn get_user(&self, id: u32) -> Result<NotificationEntity, DomainError>;
-    async fn create_active(
+    async fn get_notification(&self, id: u32) -> Result<NotificationEntity, DomainError>;
+    async fn create_notification(
         &self,
-        user: NotificationEntity,
+        notification: NotificationEntity,
     ) -> Result<NotificationEntity, DomainError>;
 }

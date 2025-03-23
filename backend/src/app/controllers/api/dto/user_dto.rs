@@ -4,8 +4,8 @@ use crate::domain::models::UserEntity;
 pub struct GetUserResponse {
     tg_id: i32,
     username: String,
-    first_name: String,
-    second_name: String,
+    first_name: Option<String>,
+    second_name: Option<String>,
 }
 
 impl From<UserEntity> for GetUserResponse {

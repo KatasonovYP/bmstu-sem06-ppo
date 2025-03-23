@@ -5,7 +5,7 @@ use axum::{
 
 use crate::domain::services::user_service::UserService;
 
-use super::models::{CreateUserRequest, CreateUserResponse, GetUserResponse};
+use super::dto::user_dto::{CreateUserRequest, CreateUserResponse, GetUserResponse};
 
 #[derive(Clone)]
 pub struct UserController {

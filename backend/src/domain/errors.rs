@@ -9,14 +9,14 @@ pub enum DomainError {
     #[error("Entity not found: {entity} with id {id}")]
     EntityNotFound { entity: String, id: String },
 
-    #[error("Authorization error: {0}")]
-    AuthorizationError(String),
+    // #[error("Authorization error: {0}")]
+    // AuthorizationError(String),
 
-    #[error("Business rule violation: {0}")]
-    BusinessRuleViolation(String),
+    // #[error("Business rule violation: {0}")]
+    // BusinessRuleViolation(String),
 
-    #[error("Conflict: {0}")]
-    Conflict(String),
+    // #[error("Conflict: {0}")]
+    // Conflict(String),
 
     #[error("External service error: {service} - {message}")]
     ExternalServiceError { service: String, message: String },
