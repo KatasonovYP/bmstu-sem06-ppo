@@ -20,33 +20,36 @@ impl PostgresUserRepository {
 #[async_trait]
 impl UserRepository for PostgresUserRepository {
     async fn get_user(&self, tg_id: u32) -> Result<UserEntity, DomainError> {
-        let conn = &mut self
+        let connection = &mut self
             .pool
             .get()
             .map_err(|e| DomainError::RepositoryError(e.to_string()))?;
 
         users::table
-            .filter(users::tg_id.eq(tg_id as i32))
             .select(orm_models::OrmSelectUser::as_select())
-            .first(conn)
+            .filter(users::tg_id.eq(tg_id as i32))
+            .first(connection)
             .optional()
+            .inspect(|x| tracing::debug!("{x:?}"))
             .map_err(|e| DomainError::RepositoryError(e.to_string()))?
-            .map(UserEntity::from)
+            .and_then(|orm_user| UserEntity::try_from(orm_user).ok())
             .ok_or(DomainError::RepositoryError("User not found".to_string()))
     }
 
     async fn create_user(&self, user: UserEntity) -> Result<UserEntity, DomainError> {
-        let conn = &mut self
+        let connection = &mut self
             .pool
             .get()
             .map_err(|e| DomainError::RepositoryError(e.to_string()))?;
 
         let user_copy = user.clone();
         let user_orm = orm_models::OrmInsertUser::from(user);
-        diesel::insert_into(users::table)
+        let user = diesel::insert_into(users::table)
             .values(user_orm)
-            .execute(conn)
+            .execute(connection)
             .map_err(|e| DomainError::RepositoryError(e.to_string()))
-            .map(|_| user_copy)
+            .map(|_| user_copy);
+        
+        return user;
     }
 }

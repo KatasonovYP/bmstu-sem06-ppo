@@ -23,7 +23,7 @@ impl NotificationRepository for PostgresNotificationRepository {
         &self,
         notification_id: u32,
     ) -> Result<NotificationEntity, DomainError> {
-        let conn = &mut self
+        let connection = &mut self
             .pool
             .get()
             .map_err(|e| DomainError::RepositoryError(e.to_string()))?;
@@ -31,7 +31,7 @@ impl NotificationRepository for PostgresNotificationRepository {
         notifications::table
             .filter(notifications::notification_id.eq(notification_id as i32))
             .select(orm_models::OrmSelectNotification::as_select())
-            .first(conn)
+            .first(connection)
             .optional()
             .map_err(|e| DomainError::RepositoryError(e.to_string()))?
             .map(NotificationEntity::from)
@@ -44,7 +44,7 @@ impl NotificationRepository for PostgresNotificationRepository {
         &self,
         notification: NotificationEntity,
     ) -> Result<NotificationEntity, DomainError> {
-        let conn = &mut self
+        let connection = &mut self
             .pool
             .get()
             .map_err(|e| DomainError::RepositoryError(e.to_string()))?;
@@ -53,7 +53,7 @@ impl NotificationRepository for PostgresNotificationRepository {
         let notification_orm = orm_models::OrmInsertNotification::from(notification);
         diesel::insert_into(notifications::table)
             .values(notification_orm)
-            .execute(conn)
+            .execute(connection)
             .map_err(|e| DomainError::RepositoryError(e.to_string()))
             .map(|_| notification_copy)
     }

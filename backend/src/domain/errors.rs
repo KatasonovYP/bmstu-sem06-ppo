@@ -1,6 +1,5 @@
 use thiserror::Error;
 
-/// Основная ошибка домена
 #[derive(Error, Debug)]
 pub enum DomainError {
     #[error("Validation error: {0}")]
@@ -17,7 +16,6 @@ pub enum DomainError {
 
     // #[error("Conflict: {0}")]
     // Conflict(String),
-
     #[error("External service error: {service} - {message}")]
     ExternalServiceError { service: String, message: String },
 
@@ -27,14 +25,3 @@ pub enum DomainError {
     #[error("Unexpected error: {0}")]
     UnexpectedError(String),
 }
-// use axum::{http::StatusCode, response::IntoResponse};
-
-// impl IntoResponse for DomainError {
-//     fn into_response(self) -> axum::response::Response {
-//         match self {
-//             DomainError::ValidationError(msg) => (StatusCode::BAD_REQUEST, msg).into_response(),
-//             // Add other error mappings
-//             _ => (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error").into_response(),
-//         }
-//     }
-// }

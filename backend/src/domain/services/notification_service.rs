@@ -1,6 +1,8 @@
 use crate::domain::errors::DomainError;
 use crate::domain::models::NotificationEntity;
+use crate::ports::inbound::domain::AbstractNotificationService;
 use crate::ports::outbound::db::NotificationRepository;
+use async_trait::async_trait;
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -14,8 +16,11 @@ impl NotificationService {
             notification_repository,
         }
     }
+}
 
-    pub async fn get_notification(
+#[async_trait]
+impl AbstractNotificationService for NotificationService {
+    async fn get_notification(
         &self,
         notification_id: u32,
     ) -> Result<NotificationEntity, DomainError> {
@@ -24,7 +29,7 @@ impl NotificationService {
             .await
     }
 
-    pub async fn create_notification(
+    async fn create_notification(
         &self,
         notification: NotificationEntity,
     ) -> Result<NotificationEntity, DomainError> {

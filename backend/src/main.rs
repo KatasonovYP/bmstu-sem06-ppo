@@ -29,7 +29,7 @@ use domain::services::{
 use std::{net::SocketAddr, sync::Arc, time::Instant};
 
 use http_body_util::BodyExt;
-use tracing::{info, debug};
+use tracing::{debug, info};
 
 // Middleware для логирования запросов в структурированном формате
 async fn log_request(request: Request<Body>, next: Next) -> Result<Response, StatusCode> {
@@ -39,10 +39,10 @@ async fn log_request(request: Request<Body>, next: Next) -> Result<Response, Sta
 
     // Логируем заголовки
     let headers = format!("{:#?}", request.headers());
-    
+
     // Разделяем запрос на части
     let (parts, body) = request.into_parts();
-    
+
     // Собираем тело запроса
     let bytes = match body.collect().await {
         Ok(collected) => collected.to_bytes(),
@@ -51,7 +51,7 @@ async fn log_request(request: Request<Body>, next: Next) -> Result<Response, Sta
             Bytes::new() // Пустые байты если не удалось прочитать
         }
     };
-    
+
     // Пытаемся преобразовать тело в строку
     let body_str = match String::from_utf8(bytes.clone().to_vec()) {
         Ok(s) => s,
@@ -60,17 +60,17 @@ async fn log_request(request: Request<Body>, next: Next) -> Result<Response, Sta
 
     // Восстанавливаем запрос с тем же телом
     let request = Request::from_parts(parts, Body::from(bytes));
-    
+
     // Отмечаем начало запроса
     let start = Instant::now();
-    
+
     // Обрабатываем запрос
     let response = next.run(request).await;
-    
+
     // Логируем информацию о запросе
     let latency = start.elapsed();
     let status = response.status();
-    
+
     info!(
         status = status.as_u16(),
         method = method.as_str(),
@@ -79,13 +79,14 @@ async fn log_request(request: Request<Body>, next: Next) -> Result<Response, Sta
         headers = headers,
         body = body_str,
     );
-    
+
     Ok(response)
 }
 
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
+        // .json()
         .pretty()
         .with_max_level(tracing::Level::TRACE)
         .with_level(true)
@@ -99,25 +100,25 @@ async fn main() {
     info!("logger inited successfully");
     let user_repo = Arc::new(PostgresUserRepository::new(establish_connection_pool()));
     info!("PostgresUserRepository inited successfully");
-    let user_service = UserService::new(user_repo);
+    let user_service = Arc::new(UserService::new(user_repo));
     info!("UserService inited successfully");
     let user_controller = UserController::new(user_service);
     info!("UserController inited successfully");
 
     let active_repo = Arc::new(PostgresActiveRepository::new(establish_connection_pool()));
-    let active_service = ActiveService::new(active_repo);
+    let active_service = Arc::new(ActiveService::new(active_repo));
     let active_controller = ActiveController::new(active_service);
 
     let notification_repo = Arc::new(PostgresNotificationRepository::new(
         establish_connection_pool(),
     ));
-    let notification_service = NotificationService::new(notification_repo);
-    let notification_controller = NotificationController::new(notification_service);
+    let notification_service = Arc::new(NotificationService::new(notification_repo));
+    let notification_controller: NotificationController = NotificationController::new(notification_service);
 
     // Создаем базовый маршрутизатор без middleware
     let app = Router::new()
         .route("/ping/", get(HealthController::get_ping))
-        .route("/users/{id}/", get(UserController::get_user))
+        .route("/users/{user_id}/", get(UserController::get_user))
         .route("/users/", post(UserController::create_user))
         .with_state(user_controller)
         .route("/actives/{id}/", get(ActiveController::get_active))

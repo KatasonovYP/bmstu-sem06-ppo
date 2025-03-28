@@ -1,7 +1,9 @@
+use super::value_objects;
+
 #[derive(Clone)]
 pub struct UserEntity {
     pub tg_id: i32,
-    pub username: String,
+    pub username: value_objects::Username,
     pub first_name: Option<String>,
     pub second_name: Option<String>,
 }
@@ -22,3 +24,14 @@ pub struct NotificationEntity {
     pub limit_lower: i32,
     pub limit_type: i16,
 }
+
+// #[derive(Clone)]
+// pub struct SecurityEntity {
+//     pub name: String,
+//     pub title: String,
+//     pub value: String,
+//     pub property_type: String,
+//     pub sort_order: i64,
+//     pub is_hidden: i64,
+//     pub precision: Option<i64>,
+// }

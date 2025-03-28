@@ -1,9 +1,11 @@
 use crate::app::adapters::db::schema::actives;
 use crate::app::adapters::db::schema::notifications;
 use crate::app::adapters::db::schema::users;
+use crate::domain::errors::DomainError;
 use crate::domain::models::ActiveEntity;
 use crate::domain::models::NotificationEntity;
 use crate::domain::models::UserEntity;
+use crate::domain::value_objects::Username;
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -17,14 +19,16 @@ pub struct OrmSelectUser {
     pub second_name: Option<String>,
 }
 
-impl From<OrmSelectUser> for UserEntity {
-    fn from(orm_user: OrmSelectUser) -> Self {
-        UserEntity {
+impl TryFrom<OrmSelectUser> for UserEntity {
+    type Error = DomainError;
+    fn try_from(orm_user: OrmSelectUser) -> Result<Self, Self::Error> {
+        let username = Username::new(orm_user.username)?;
+        Ok(UserEntity {
             tg_id: orm_user.tg_id,
-            username: orm_user.username,
+            username,
             first_name: orm_user.first_name,
             second_name: orm_user.second_name,
-        }
+        })
     }
 }
 
@@ -41,7 +45,7 @@ impl From<UserEntity> for OrmInsertUser {
     fn from(user_entity: UserEntity) -> Self {
         OrmInsertUser {
             tg_id: user_entity.tg_id,
-            username: user_entity.username,
+            username: user_entity.username.value,
             first_name: user_entity.first_name,
             second_name: user_entity.second_name,
         }
