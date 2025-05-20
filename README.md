@@ -56,3 +56,7 @@
 ### Сложные
 
 ![image](./docs/images/use-cases-04-complex.png)
+
+### UML
+
+![image](./docs/images/uml.png)
