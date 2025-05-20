@@ -1,0 +1,17 @@
+use async_trait::async_trait;
+use shaku::Interface;
+
+use crate::domain::{
+    errors::DomainError,
+    models::{
+        SecurityEntity,
+        TradeEntity,
+    },
+};
+
+#[cfg_attr(not(feature = "production"), mockall::automock)]
+#[async_trait]
+pub trait ExchangeRepository: Interface + Send + Sync + 'static {
+    async fn get_security(&self, security_id: String) -> Result<SecurityEntity, DomainError>;
+    async fn get_trades(&self, security_id: String) -> Result<Vec<TradeEntity>, DomainError>;
+}
