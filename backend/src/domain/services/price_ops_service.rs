@@ -7,7 +7,7 @@ use crate::domain::{
     errors::DomainError,
     models::ActiveEntity,
     ports::{
-        domain::AbstractPricesService,
+        domain::AbstractPriceOpsService,
         exchange::ExchangeRepository,
     },
     value_objects::{
@@ -17,13 +17,13 @@ use crate::domain::{
 };
 
 #[derive(Clone, Component)]
-#[shaku(interface = AbstractPricesService)]
-pub struct PricesService {
+#[shaku(interface = AbstractPriceOpsService)]
+pub struct PriceOpsService {
     #[shaku(inject)]
     exchange_repository: Arc<dyn ExchangeRepository>,
 }
 
-impl PricesService {
+impl PriceOpsService {
     pub fn new(exchange_repository: Arc<dyn ExchangeRepository>) -> Self {
         Self {
             exchange_repository,
@@ -32,7 +32,7 @@ impl PricesService {
 }
 
 #[async_trait]
-impl AbstractPricesService for PricesService {
+impl AbstractPriceOpsService for PriceOpsService {
     #[tracing::instrument(skip(self), err(Debug), ret)]
     async fn get_actives_bought_price(
         &self,
@@ -111,7 +111,7 @@ mod tests {
 
         let mock_exchange_repository = MockExchangeRepository::new();
 
-        let result = PricesService::new(Arc::new(mock_exchange_repository))
+        let result = PriceOpsService::new(Arc::new(mock_exchange_repository))
             .get_actives_bought_price(vec![])
             .await
             .unwrap();
@@ -125,7 +125,7 @@ mod tests {
 
         let mock_exchange_repository = MockExchangeRepository::new();
 
-        let result = PricesService::new(Arc::new(mock_exchange_repository))
+        let result = PriceOpsService::new(Arc::new(mock_exchange_repository))
             .get_actives_current_price(vec![])
             .await
             .unwrap();
@@ -147,7 +147,7 @@ mod tests {
 
         let mock_exchange_repository = MockExchangeRepository::new();
 
-        let result = PricesService::new(Arc::new(mock_exchange_repository))
+        let result = PriceOpsService::new(Arc::new(mock_exchange_repository))
             .get_actives_bought_price(actives)
             .await
             .unwrap();
@@ -172,7 +172,7 @@ mod tests {
             .with(eq(mock_active.security_id.clone()))
             .returning(move |_| Ok(vec![mock_trade.clone()]));
 
-        let active_service = PricesService::new(Arc::new(mock_exchange_repository));
+        let active_service = PriceOpsService::new(Arc::new(mock_exchange_repository));
 
         let result = active_service
             .get_active_current_price(&mock_active)
@@ -193,7 +193,7 @@ mod tests {
             .with(eq(mock_active.security_id.clone()))
             .returning(|_| Ok(vec![])); // Empty trades list
 
-        let active_service = PricesService::new(Arc::new(mock_exchange_repository));
+        let active_service = PriceOpsService::new(Arc::new(mock_exchange_repository));
 
         let result = active_service.get_active_current_price(&mock_active).await;
 
@@ -235,9 +235,9 @@ mod tests {
             .with(eq(msft_active.security_id))
             .returning(move |_| Ok(vec![msft_trade.clone()]));
 
-        let prices_service = PricesService::new(Arc::new(mock_exchange_repository));
+        let price_ops_service = PriceOpsService::new(Arc::new(mock_exchange_repository));
 
-        let result = prices_service
+        let result = price_ops_service
             .get_actives_current_price(actives)
             .await
             .unwrap();

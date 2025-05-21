@@ -73,7 +73,7 @@ pub trait AbstractSentService: Interface + Send + Sync + 'static {
 
 #[cfg_attr(not(feature = "production"), mockall::automock)]
 #[async_trait]
-pub trait AbstractPricesService: Interface + Send + Sync + 'static {
+pub trait AbstractPriceOpsService: Interface + Send + Sync + 'static {
     async fn get_actives_bought_price(
         &self,
         actives: Vec<ActiveEntity>,
@@ -95,8 +95,9 @@ pub trait AbstractLimitMonitorService: Interface + Send + Sync + 'static {
 
 #[cfg_attr(not(feature = "production"), mockall::automock)]
 #[async_trait]
-pub trait AbstractPriceRefresherService: Interface + Send + Sync + 'static {
-    async fn refresh_prices(&self) -> Result<(), DomainError>;
+pub trait AbstractPriceCacheService: Interface + Send + Sync + 'static {
+    async fn get_price(&self, active: &ActiveEntity) -> Result<Price, DomainError>;
     async fn refresh_price(&self, active: &ActiveEntity) -> Result<Price, DomainError>;
+    async fn refresh_all_prices(&self) -> Result<(), DomainError>;
     async fn start(&self) -> Result<u32, DomainError>;
 }

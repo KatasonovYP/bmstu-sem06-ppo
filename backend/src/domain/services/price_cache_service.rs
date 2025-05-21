@@ -11,10 +11,10 @@ use crate::domain::{
     errors::DomainError,
     models::ActiveEntity,
     ports::{
-        cache::SecurityCurrentPriceCache,
+        cache::PriceCacheRepository,
         domain::{
-            AbstractPriceRefresherService,
-            AbstractPricesService,
+            AbstractPriceCacheService,
+            AbstractPriceOpsService,
         },
         storage::ActiveRepository,
     },
@@ -22,20 +22,43 @@ use crate::domain::{
 };
 
 #[derive(Clone, Component)]
-#[shaku(interface = AbstractPriceRefresherService)]
-pub struct PriceRefresherService {
+#[shaku(interface = AbstractPriceCacheService)]
+pub struct PriceCacheService {
     #[shaku(inject)]
     active_repo: Arc<dyn ActiveRepository>,
     #[shaku(inject)]
-    prices_cache: Arc<dyn SecurityCurrentPriceCache>,
+    price_cache_repo: Arc<dyn PriceCacheRepository>,
     #[shaku(inject)]
-    prices_service: Arc<dyn AbstractPricesService>,
+    price_ops_service: Arc<dyn AbstractPriceOpsService>,
+}
+
+impl PriceCacheService {
+    pub fn new(
+        active_repo: Arc<dyn ActiveRepository>,
+        price_cache_repo: Arc<dyn PriceCacheRepository>,
+        price_ops_service: Arc<dyn AbstractPriceOpsService>,
+    ) -> Self {
+        Self {
+            active_repo,
+            price_cache_repo,
+            price_ops_service,
+        }
+    }
 }
 
 #[async_trait]
-impl AbstractPriceRefresherService for PriceRefresherService {
+impl AbstractPriceCacheService for PriceCacheService {
     #[tracing::instrument(skip(self), err(Debug), ret)]
-    async fn refresh_prices(&self) -> Result<(), DomainError> {
+    async fn get_price(&self, active: &ActiveEntity) -> Result<Price, DomainError> {
+        let price = match self.price_cache_repo.get_price(&active.security_id).await {
+            Err(_) => self.refresh_price(active).await?,
+            Ok(price) => price,
+        };
+        Ok(price)
+    }
+
+    #[tracing::instrument(skip(self), err(Debug), ret)]
+    async fn refresh_all_prices(&self) -> Result<(), DomainError> {
         let actives = self.active_repo.list_actives().await?;
         tracing::info!("refresh prices for {:#?}", actives);
         for active in &actives {
@@ -46,21 +69,24 @@ impl AbstractPriceRefresherService for PriceRefresherService {
 
     #[tracing::instrument(skip(self), err(Debug), ret)]
     async fn refresh_price(&self, active: &ActiveEntity) -> Result<Price, DomainError> {
-        let price = self.prices_service.get_active_current_price(active).await?;
-        self.prices_cache
+        let price = self
+            .price_ops_service
+            .get_active_current_price(active)
+            .await?;
+        self.price_cache_repo
             .set_price(&active.security_id, price.clone())
             .await?;
         Ok(price)
     }
 
     async fn start(&self) -> Result<u32, DomainError> {
-        let n_seconds = 5;
+        let n_seconds = 2;
         let mut interval = time::interval(Duration::from_secs(n_seconds));
 
         loop {
             tracing::info!("new check");
             interval.tick().await;
-            self.refresh_prices().await?;
+            self.refresh_all_prices().await?;
         }
     }
 }
@@ -80,8 +106,8 @@ mod tests {
     use crate::domain::{
         models::ActiveEntity,
         ports::{
-            cache::MockSecurityCurrentPriceCache,
-            domain::MockAbstractPricesService,
+            cache::MockPriceCacheRepository,
+            domain::MockAbstractPriceOpsService,
             storage::MockActiveRepository,
         },
         value_objects::Price,
@@ -89,13 +115,13 @@ mod tests {
 
     fn setup_service(
         active_repo: Arc<MockActiveRepository>,
-        prices_cache: Arc<MockSecurityCurrentPriceCache>,
-        prices_service: Arc<MockAbstractPricesService>,
-    ) -> PriceRefresherService {
-        PriceRefresherService {
+        price_cache_repo: Arc<MockPriceCacheRepository>,
+        price_ops_service: Arc<MockAbstractPriceOpsService>,
+    ) -> PriceCacheService {
+        PriceCacheService {
             active_repo,
-            prices_cache,
-            prices_service,
+            price_cache_repo,
+            price_ops_service,
         }
     }
 
@@ -121,36 +147,36 @@ mod tests {
             .expect_list_actives()
             .returning(move || Ok(actives.clone()));
 
-        let mut prices_service = MockAbstractPricesService::new();
-        prices_service
+        let mut price_ops_service = MockAbstractPriceOpsService::new();
+        price_ops_service
             .expect_get_active_current_price()
             .with(eq(active1.clone()))
             .returning(move |_| Ok(price1_clone1.clone()));
 
-        prices_service
+        price_ops_service
             .expect_get_active_current_price()
             .with(eq(active2.clone()))
             .returning(move |_| Ok(price2_clone1.clone()));
 
-        let mut prices_cache = MockSecurityCurrentPriceCache::new();
-        prices_cache
+        let mut price_cache_repo = MockPriceCacheRepository::new();
+        price_cache_repo
             .expect_set_price()
             .with(eq(active1.security_id.clone()), eq(price1_clone2.clone()))
             .returning(|_, p| Ok(p));
 
-        prices_cache
+        price_cache_repo
             .expect_set_price()
             .with(eq(active2.security_id.clone()), eq(price2_clone2.clone()))
             .returning(|_, p| Ok(p));
 
         let service = setup_service(
             Arc::new(active_repo),
-            Arc::new(prices_cache),
-            Arc::new(prices_service),
+            Arc::new(price_cache_repo),
+            Arc::new(price_ops_service),
         );
 
         // Act
-        let result = service.refresh_prices().await;
+        let result = service.refresh_all_prices().await;
 
         // Assert
         assert!(result.is_ok());
@@ -164,20 +190,20 @@ mod tests {
             .expect_list_actives()
             .returning(|| Ok(Vec::new()));
 
-        let prices_service = MockAbstractPricesService::new();
+        let price_ops_service = MockAbstractPriceOpsService::new();
         // Для пустого списка активов get_active_current_price не должен вызываться
 
-        let prices_cache = MockSecurityCurrentPriceCache::new();
+        let price_cache_repo = MockPriceCacheRepository::new();
         // Для пустого списка активов set_price не должен вызываться
 
         let service = setup_service(
             Arc::new(active_repo),
-            Arc::new(prices_cache),
-            Arc::new(prices_service),
+            Arc::new(price_cache_repo),
+            Arc::new(price_ops_service),
         );
 
         // Act
-        let result = service.refresh_prices().await;
+        let result = service.refresh_all_prices().await;
 
         // Assert
         assert!(result.is_ok());
@@ -191,17 +217,17 @@ mod tests {
             .expect_list_actives()
             .returning(|| Err(DomainError::RepositoryError("Database error".to_string())));
 
-        let prices_service = MockAbstractPricesService::new();
-        let prices_cache = MockSecurityCurrentPriceCache::new();
+        let price_ops_service = MockAbstractPriceOpsService::new();
+        let price_cache_repo = MockPriceCacheRepository::new();
 
         let service = setup_service(
             Arc::new(active_repo),
-            Arc::new(prices_cache),
-            Arc::new(prices_service),
+            Arc::new(price_cache_repo),
+            Arc::new(price_ops_service),
         );
 
         // Act
-        let result = service.refresh_prices().await;
+        let result = service.refresh_all_prices().await;
 
         // Assert
         assert!(result.is_err());
@@ -211,7 +237,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn should_handle_error_from_prices_service() {
+    async fn should_handle_error_from_price_ops_service() {
         // Arrange
         let active: ActiveEntity = Faker.fake();
         let active_clone = active.clone();
@@ -221,8 +247,8 @@ mod tests {
             .expect_list_actives()
             .returning(move || Ok(vec![active.clone()]));
 
-        let mut prices_service = MockAbstractPricesService::new();
-        prices_service
+        let mut price_ops_service = MockAbstractPriceOpsService::new();
+        price_ops_service
             .expect_get_active_current_price()
             .with(eq(active_clone.clone()))
             .returning(|_| {
@@ -231,17 +257,17 @@ mod tests {
                 ))
             });
 
-        let prices_cache = MockSecurityCurrentPriceCache::new();
-        // set_price не должен вызываться из-за ошибки в prices_service
+        let price_cache_repo = MockPriceCacheRepository::new();
+        // set_price не должен вызываться из-за ошибки в price_ops_service
 
         let service = setup_service(
             Arc::new(active_repo),
-            Arc::new(prices_cache),
-            Arc::new(prices_service),
+            Arc::new(price_cache_repo),
+            Arc::new(price_ops_service),
         );
 
         // Act
-        let result = service.refresh_prices().await;
+        let result = service.refresh_all_prices().await;
 
         // Assert
         assert!(result.is_err());
@@ -266,14 +292,14 @@ mod tests {
             .expect_list_actives()
             .returning(move || Ok(vec![active.clone()]));
 
-        let mut prices_service = MockAbstractPricesService::new();
-        prices_service
+        let mut price_ops_service = MockAbstractPriceOpsService::new();
+        price_ops_service
             .expect_get_active_current_price()
             .with(eq(active_clone1.clone()))
             .returning(move |_| Ok(price_clone1.clone()));
 
-        let mut prices_cache = MockSecurityCurrentPriceCache::new();
-        prices_cache
+        let mut price_cache_repo = MockPriceCacheRepository::new();
+        price_cache_repo
             .expect_set_price()
             .with(
                 eq(active_clone2.security_id.clone()),
@@ -283,12 +309,12 @@ mod tests {
 
         let service = setup_service(
             Arc::new(active_repo),
-            Arc::new(prices_cache),
-            Arc::new(prices_service),
+            Arc::new(price_cache_repo),
+            Arc::new(price_ops_service),
         );
 
         // Act
-        let result = service.refresh_prices().await;
+        let result = service.refresh_all_prices().await;
 
         // Assert
         assert!(result.is_err());
@@ -329,15 +355,15 @@ mod tests {
             .expect_list_actives()
             .returning(move || Ok(actives.clone()));
 
-        let mut prices_service = MockAbstractPricesService::new();
+        let mut price_ops_service = MockAbstractPriceOpsService::new();
         // Настройка для первого актива
-        prices_service
+        price_ops_service
             .expect_get_active_current_price()
             .with(eq(active1_clone1.clone()))
             .returning(move |_| Ok(price1_clone1.clone()));
 
         // Настройка для второго актива - возвращает ошибку
-        prices_service
+        price_ops_service
             .expect_get_active_current_price()
             .with(eq(active2_clone.clone()))
             .returning(|_| {
@@ -347,14 +373,14 @@ mod tests {
             });
 
         // Настройка для третьего актива
-        prices_service
+        price_ops_service
             .expect_get_active_current_price()
             .with(eq(active3_clone1.clone()))
             .returning(move |_| Ok(price3_clone1.clone()));
 
-        let mut prices_cache = MockSecurityCurrentPriceCache::new();
+        let mut price_cache_repo = MockPriceCacheRepository::new();
         // Настройка для первого актива
-        prices_cache
+        price_cache_repo
             .expect_set_price()
             .with(
                 eq(active1_clone2.security_id.clone()),
@@ -365,7 +391,7 @@ mod tests {
         // Для второго актива set_price не вызывается из-за ошибки
 
         // Настройка для третьего актива
-        prices_cache
+        price_cache_repo
             .expect_set_price()
             .with(
                 eq(active3_clone2.security_id.clone()),
@@ -375,12 +401,12 @@ mod tests {
 
         let service = setup_service(
             Arc::new(active_repo),
-            Arc::new(prices_cache),
-            Arc::new(prices_service),
+            Arc::new(price_cache_repo),
+            Arc::new(price_ops_service),
         );
 
         // Act
-        let result = service.refresh_prices().await;
+        let result = service.refresh_all_prices().await;
 
         // Assert
         // Этот тест предполагает, что ошибка для одного актива останавливает обработку всех

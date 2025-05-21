@@ -9,7 +9,7 @@ use crate::domain::{
     ports::{
         domain::{
             AbstractActiveService,
-            AbstractPricesService,
+            AbstractPriceOpsService,
         },
         storage::ActiveRepository,
     },
@@ -22,17 +22,17 @@ pub struct ActiveService {
     #[shaku(inject)]
     active_repository: Arc<dyn ActiveRepository>,
     #[shaku(inject)]
-    prices_service: Arc<dyn AbstractPricesService>,
+    price_ops_service: Arc<dyn AbstractPriceOpsService>,
 }
 
 impl ActiveService {
     pub fn new(
         active_repository: Arc<dyn ActiveRepository>,
-        prices_service: Arc<dyn AbstractPricesService>,
+        price_ops_service: Arc<dyn AbstractPriceOpsService>,
     ) -> Self {
         Self {
             active_repository,
-            prices_service,
+            price_ops_service,
         }
     }
 }
@@ -72,7 +72,7 @@ impl AbstractActiveService for ActiveService {
     #[tracing::instrument(skip(self), err(Debug), ret)]
     async fn sum_user_actives_bought_price(&self, user_id: u32) -> Result<Price, DomainError> {
         let user_actives = self.active_repository.list_user_actives(user_id).await?;
-        self.prices_service
+        self.price_ops_service
             .get_actives_bought_price(user_actives)
             .await
     }
@@ -80,7 +80,7 @@ impl AbstractActiveService for ActiveService {
     #[tracing::instrument(skip(self), err(Debug), ret)]
     async fn sum_user_actives_current_price(&self, user_id: u32) -> Result<Price, DomainError> {
         let user_actives = self.active_repository.list_user_actives(user_id).await?;
-        self.prices_service
+        self.price_ops_service
             .get_actives_current_price(user_actives)
             .await
     }
@@ -97,14 +97,14 @@ mod tests {
 
     use super::*;
     use crate::domain::ports::{
-        domain::MockAbstractPricesService,
+        domain::MockAbstractPriceOpsService,
         storage::MockActiveRepository,
     };
 
     #[tokio::test]
     async fn should_return_required_active() {
         let mut mock_active_repository = MockActiveRepository::new();
-        let mock_prices_service = MockAbstractPricesService::new();
+        let mock_price_ops_service = MockAbstractPriceOpsService::new();
 
         let mock_active = Faker.fake::<ActiveEntity>();
 
@@ -117,7 +117,7 @@ mod tests {
 
         let active_service = ActiveService::new(
             Arc::new(mock_active_repository),
-            Arc::new(mock_prices_service),
+            Arc::new(mock_price_ops_service),
         );
 
         assert_eq!(
@@ -129,7 +129,7 @@ mod tests {
     #[tokio::test]
     async fn should_create_active() {
         let mut mock_active_repository = MockActiveRepository::new();
-        let mock_prices_service = MockAbstractPricesService::new();
+        let mock_price_ops_service = MockAbstractPriceOpsService::new();
 
         let input_active: ActiveEntity = Faker.fake();
 
@@ -144,7 +144,7 @@ mod tests {
 
         let active_service = ActiveService::new(
             Arc::new(mock_active_repository),
-            Arc::new(mock_prices_service),
+            Arc::new(mock_price_ops_service),
         );
 
         assert_eq!(
