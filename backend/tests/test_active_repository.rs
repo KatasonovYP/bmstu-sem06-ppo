@@ -26,6 +26,7 @@ async fn test_active_repository() {
     let active_repo: Arc<dyn ActiveRepository> = module.resolve();
     let user_repo: Arc<dyn UserRepository> = module.resolve();
 
+    let users_on_start_test = user_repo.list_users().await.unwrap();
     let actives_on_start_test = active_repo.list_actives().await.unwrap();
 
     let test_user: UserEntity = Faker.fake();
@@ -82,6 +83,13 @@ async fn test_active_repository() {
         .unwrap();
     assert_eq!(result_active, expected_active);
 
+    user_repo
+        .delete_user(result_user.user_id)
+        .await
+        .unwrap();
+
+    let users_on_end_test = user_repo.list_users().await.unwrap();
+    assert_eq!(users_on_start_test, users_on_end_test);
     let actives_on_end_test = active_repo.list_actives().await.unwrap();
     assert_eq!(actives_on_start_test, actives_on_end_test);
 }

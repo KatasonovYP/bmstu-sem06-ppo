@@ -62,6 +62,7 @@ async fn test_limit_monitor() {
     let mut notification_sender = MockNotificationSender::new();
     notification_sender
         .expect_send_message()
+        .times(1)
         .returning(|_, _| Ok("".into()));
 
     let limit_monitor_service = LimitMonitorService::new(
