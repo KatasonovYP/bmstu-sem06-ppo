@@ -1,0 +1,8 @@
+[alias]
+api = 'run --bin api'
+cli = 'run --bin cli'
+refresher = 'run --bin refresher'
+notifier = 'run --bin notifier'
+
+[build]
+target-dir = 'target'

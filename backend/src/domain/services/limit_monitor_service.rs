@@ -11,10 +11,9 @@ use crate::domain::{
     errors::DomainError,
     models::UserEntity,
     ports::{
-        cache::SecurityCurrentPriceCache,
         domain::{
             AbstractLimitMonitorService,
-            AbstractPriceRefresherService,
+            AbstractPriceCacheService,
         },
         sender::NotificationSender,
         storage::{
@@ -38,9 +37,7 @@ pub struct LimitMonitorService {
     #[shaku(inject)]
     sent_repo: Arc<dyn SentRepository>,
     #[shaku(inject)]
-    prices_cache: Arc<dyn SecurityCurrentPriceCache>,
-    #[shaku(inject)]
-    price_refresher_service: Arc<dyn AbstractPriceRefresherService>,
+    price_cache_service: Arc<dyn AbstractPriceCacheService>,
     #[shaku(inject)]
     notification_sender: Arc<dyn NotificationSender>,
 }
@@ -52,6 +49,24 @@ struct Message {
 }
 
 impl LimitMonitorService {
+    pub fn new(
+        user_repo: Arc<dyn UserRepository>,
+        active_repo: Arc<dyn ActiveRepository>,
+        notification_repo: Arc<dyn NotificationRepository>,
+        sent_repo: Arc<dyn SentRepository>,
+        price_cache_service: Arc<dyn AbstractPriceCacheService>,
+        notification_sender: Arc<dyn NotificationSender>,
+    ) -> Self {
+        Self {
+            user_repo,
+            active_repo,
+            notification_repo,
+            sent_repo,
+            price_cache_service,
+            notification_sender,
+        }
+    }
+
     async fn get_user_exeeding_messages(
         &self,
         user: &UserEntity,
@@ -69,12 +84,9 @@ impl LimitMonitorService {
                 let notification_id = notification.notification_id;
                 let sent = self.sent_repo.get_sent(notification_id).await;
                 if sent.is_ok() {
-                    break;
+                    continue;
                 }
-                let current_price = match self.prices_cache.get_price(&active.security_id).await {
-                    Err(_) => self.price_refresher_service.refresh_price(active).await?,
-                    Ok(price) => price,
-                };
+                let current_price = self.price_cache_service.get_price(active).await?;
                 let is_active_limit_exceeded = notification.limit_lower > current_price
                     || current_price > notification.limit_upper;
                 if is_active_limit_exceeded {
@@ -104,12 +116,17 @@ impl AbstractLimitMonitorService for LimitMonitorService {
         for user in &users {
             let messages = self.get_user_exeeding_messages(user).await?;
             if !messages.is_empty() {
-                let total_message = messages.iter().map(|x| &x.message).fold(String::new(), |acc, s| acc + s + "\n");
+                let total_message = messages
+                    .iter()
+                    .map(|x| &x.message)
+                    .fold(String::new(), |acc, s| acc + s + "\n");
                 self.notification_sender
                     .send_message(user.chat_id, total_message)
                     .await?;
                 for message in messages {
-                    self.sent_repo.create_sent_now(message.notification_id).await?;
+                    self.sent_repo
+                        .create_sent_now(message.notification_id)
+                        .await?;
                 }
             }
         }
@@ -117,7 +134,7 @@ impl AbstractLimitMonitorService for LimitMonitorService {
     }
 
     async fn start(&self) -> Result<u32, DomainError> {
-        let n_seconds = 5;
+        let n_seconds = 2;
         let mut interval = time::interval(Duration::from_secs(n_seconds));
 
         loop {
@@ -147,8 +164,7 @@ mod tests {
             UserEntity,
         },
         ports::{
-            cache::MockSecurityCurrentPriceCache,
-            domain::MockAbstractPriceRefresherService,
+            domain::MockAbstractPriceCacheService,
             sender::MockNotificationSender,
             storage::{
                 MockActiveRepository,
@@ -160,43 +176,21 @@ mod tests {
         value_objects::Price,
     };
 
-    fn setup_service(
-        user_repo: Arc<MockUserRepository>,
-        active_repo: Arc<MockActiveRepository>,
-        notification_repo: Arc<MockNotificationRepository>,
-        sent_repo: Arc<MockSentRepository>,
-        price_refresher_service: Arc<MockAbstractPriceRefresherService>,
-        prices_cache: Arc<MockSecurityCurrentPriceCache>,
-        notification_sender: Arc<MockNotificationSender>,
-    ) -> LimitMonitorService {
-        LimitMonitorService {
-            user_repo,
-            active_repo,
-            notification_repo,
-            price_refresher_service,
-            prices_cache,
-            notification_sender,
-            sent_repo,
-        }
-    }
-
     #[tokio::test]
     async fn should_not_trigger_notification_when_price_within_limits() {
-        // Arrange
         let user: UserEntity = Faker.fake();
         let active: ActiveEntity = Faker.fake();
         let mut notification: NotificationEntity = Faker.fake();
 
-        // Устанавливаем лимиты как Price
         notification.limit_lower = Price::rub(90.0);
         notification.limit_upper = Price::rub(110.0);
 
         let current_price = Price::rub(100.0);
 
-        let mut prices_cache = MockSecurityCurrentPriceCache::new();
-        prices_cache
+        let mut price_cache_service = MockAbstractPriceCacheService::new();
+        price_cache_service
             .expect_get_price()
-            .with(eq(active.security_id.clone()))
+            .with(eq(active.clone()))
             .returning(move |_| Ok(current_price.clone()));
 
         let mut notification_repo = MockNotificationRepository::new();
@@ -216,40 +210,35 @@ mod tests {
             .expect_get_sent()
             .returning(|_| Err(DomainError::RepositoryError("".into())));
 
-        let service = setup_service(
-            Arc::new(MockUserRepository::new()),
-            Arc::new(active_repo),
-            Arc::new(notification_repo),
-            Arc::new(sent_repo),
-            Arc::new(MockAbstractPriceRefresherService::new()),
-            Arc::new(prices_cache),
-            Arc::new(MockNotificationSender::new()),
-        );
+        let service = LimitMonitorService {
+            user_repo: Arc::new(MockUserRepository::new()),
+            active_repo: Arc::new(active_repo),
+            notification_repo: Arc::new(notification_repo),
+            sent_repo: Arc::new(sent_repo),
+            price_cache_service: Arc::new(price_cache_service),
+            notification_sender: Arc::new(MockNotificationSender::new()),
+        };
 
-        // Act
         let triggered = service.get_user_exeeding_messages(&user).await.unwrap();
 
-        // Assert
         assert!(triggered.is_empty());
     }
 
     #[tokio::test]
     async fn should_trigger_notification_when_price_below_lower_limit() {
-        // Arrange
         let user: UserEntity = Faker.fake();
         let active: ActiveEntity = Faker.fake();
         let mut notification: NotificationEntity = Faker.fake();
 
-        // Устанавливаем лимиты как Price
         notification.limit_lower = Price::rub(90.0);
         notification.limit_upper = Price::rub(110.0);
 
-        let current_price = Price::rub(85.0); // ниже нижнего предела
+        let current_price = Price::rub(85.0);
 
-        let mut prices_cache = MockSecurityCurrentPriceCache::new();
-        prices_cache
+        let mut price_cache_service = MockAbstractPriceCacheService::new();
+        price_cache_service
             .expect_get_price()
-            .with(eq(active.security_id.clone()))
+            .with(eq(active.clone()))
             .returning(move |_| Ok(current_price.clone()));
 
         let mut notification_repo = MockNotificationRepository::new();
@@ -272,40 +261,35 @@ mod tests {
             .expect_create_sent()
             .returning(|_| Ok(Faker.fake()));
 
-        let service = setup_service(
-            Arc::new(MockUserRepository::new()),
-            Arc::new(active_repo),
-            Arc::new(notification_repo),
-            Arc::new(sent_repo),
-            Arc::new(MockAbstractPriceRefresherService::new()),
-            Arc::new(prices_cache),
-            Arc::new(MockNotificationSender::new()),
-        );
+        let service = LimitMonitorService {
+            user_repo: Arc::new(MockUserRepository::new()),
+            active_repo: Arc::new(active_repo),
+            notification_repo: Arc::new(notification_repo),
+            sent_repo: Arc::new(sent_repo),
+            price_cache_service: Arc::new(price_cache_service),
+            notification_sender: Arc::new(MockNotificationSender::new()),
+        };
 
-        // Act
         let triggered = service.get_user_exeeding_messages(&user).await.unwrap();
 
-        // Assert
         assert_eq!(triggered.len(), 1);
     }
 
     #[tokio::test]
     async fn should_trigger_notification_when_price_above_upper_limit() {
-        // Arrange
         let user: UserEntity = Faker.fake();
         let active: ActiveEntity = Faker.fake();
         let mut notification: NotificationEntity = Faker.fake();
 
-        // Устанавливаем лимиты как Price
         notification.limit_lower = Price::rub(90.0);
         notification.limit_upper = Price::rub(110.0);
 
-        let current_price = Price::rub(115.0); // выше верхнего предела
+        let current_price = Price::rub(115.0);
 
-        let mut prices_cache = MockSecurityCurrentPriceCache::new();
-        prices_cache
+        let mut price_cache_service = MockAbstractPriceCacheService::new();
+        price_cache_service
             .expect_get_price()
-            .with(eq(active.security_id.clone()))
+            .with(eq(active.clone()))
             .returning(move |_| Ok(current_price.clone()));
 
         let mut notification_repo = MockNotificationRepository::new();
@@ -328,26 +312,22 @@ mod tests {
             .expect_create_sent()
             .returning(|_| Ok(Faker.fake()));
 
-        let service = setup_service(
-            Arc::new(MockUserRepository::new()),
-            Arc::new(active_repo),
-            Arc::new(notification_repo),
-            Arc::new(sent_repo),
-            Arc::new(MockAbstractPriceRefresherService::new()),
-            Arc::new(prices_cache),
-            Arc::new(MockNotificationSender::new()),
-        );
+        let service = LimitMonitorService {
+            user_repo: Arc::new(MockUserRepository::new()),
+            active_repo: Arc::new(active_repo),
+            notification_repo: Arc::new(notification_repo),
+            sent_repo: Arc::new(sent_repo),
+            price_cache_service: Arc::new(price_cache_service),
+            notification_sender: Arc::new(MockNotificationSender::new()),
+        };
 
-        // Act
         let triggered = service.get_user_exeeding_messages(&user).await.unwrap();
 
-        // Assert
         assert_eq!(triggered.len(), 1);
     }
 
     #[tokio::test]
     async fn should_return_empty_triggered_notifications_when_no_actives() {
-        // Arrange
         let user: UserEntity = Faker.fake();
 
         let mut active_repo = MockActiveRepository::new();
@@ -361,20 +341,17 @@ mod tests {
             .expect_get_sent()
             .returning(|_| Err(DomainError::RepositoryError("".into())));
 
-        let service = setup_service(
-            Arc::new(MockUserRepository::new()),
-            Arc::new(active_repo),
-            Arc::new(MockNotificationRepository::new()),
-            Arc::new(sent_repo),
-            Arc::new(MockAbstractPriceRefresherService::new()),
-            Arc::new(MockSecurityCurrentPriceCache::new()),
-            Arc::new(MockNotificationSender::new()),
-        );
+        let service = LimitMonitorService {
+            user_repo: Arc::new(MockUserRepository::new()),
+            active_repo: Arc::new(active_repo),
+            notification_repo: Arc::new(MockNotificationRepository::new()),
+            sent_repo: Arc::new(sent_repo),
+            price_cache_service: Arc::new(MockAbstractPriceCacheService::new()),
+            notification_sender: Arc::new(MockNotificationSender::new()),
+        };
 
-        // Act
         let triggered = service.get_user_exeeding_messages(&user).await.unwrap();
 
-        // Assert
         assert_eq!(triggered.len(), 0);
     }
 
@@ -393,9 +370,8 @@ mod tests {
         notification2.limit_lower = Price::rub(95.0);
         notification2.limit_upper = Price::rub(105.0);
 
-        let current_price = Price::rub(115.0); // выше обоих пределов
+        let current_price = Price::rub(115.0);
 
-        // Клонируем active, чтобы избежать проблем с перемещением
         let active_clone = active.clone();
 
         let mut active_repo = MockActiveRepository::new();
@@ -410,11 +386,11 @@ mod tests {
             .with(eq(active.active_id))
             .returning(move |_| Ok(vec![notification1.clone(), notification2.clone()]));
 
-        let mut prices_cache = MockSecurityCurrentPriceCache::new();
-        prices_cache
+        let mut price_cache_service = MockAbstractPriceCacheService::new();
+        price_cache_service
             .expect_get_price()
-            .times(2) // два вызова для двух уведомлений
-            .with(eq(active.security_id.clone()))
+            .times(2)
+            .with(eq(active.clone()))
             .returning(move |_| Ok(current_price.clone()));
 
         let mut sent_repo = MockSentRepository::new();
@@ -425,26 +401,22 @@ mod tests {
             .expect_create_sent()
             .returning(|_| Ok(Faker.fake()));
 
-        let service = setup_service(
-            Arc::new(MockUserRepository::new()),
-            Arc::new(active_repo),
-            Arc::new(notification_repo),
-            Arc::new(sent_repo),
-            Arc::new(MockAbstractPriceRefresherService::new()),
-            Arc::new(prices_cache),
-            Arc::new(MockNotificationSender::new()),
-        );
+        let service = LimitMonitorService {
+            user_repo: Arc::new(MockUserRepository::new()),
+            active_repo: Arc::new(active_repo),
+            notification_repo: Arc::new(notification_repo),
+            sent_repo: Arc::new(sent_repo),
+            price_cache_service: Arc::new(price_cache_service),
+            notification_sender: Arc::new(MockNotificationSender::new()),
+        };
 
-        // Act
         let triggered = service.get_user_exeeding_messages(&user).await.unwrap();
 
-        // Assert
         assert_eq!(triggered.len(), 2);
     }
 
     #[tokio::test]
     async fn should_handle_multiple_users_with_check_users_limits() {
-        // Arrange
         let user1: UserEntity = Faker.fake();
         let user2: UserEntity = Faker.fake();
 
@@ -459,7 +431,6 @@ mod tests {
         notification2.limit_lower = Price::rub(80.0);
         notification2.limit_upper = Price::rub(120.0);
 
-        // Клонируем переменные для использования в нескольких замыканиях
         let user1_clone = user1.clone();
         let active1_clone = active1.clone();
 
@@ -471,7 +442,7 @@ mod tests {
         let mut active_repo = MockActiveRepository::new();
         active_repo
             .expect_list_user_actives()
-            .times(2) // два пользователя
+            .times(2)
             .returning(move |user_id| {
                 if user_id == user1_clone.user_id {
                     Ok(vec![active1.clone()])
@@ -483,7 +454,7 @@ mod tests {
         let mut notification_repo = MockNotificationRepository::new();
         notification_repo
             .expect_list_active_notifications()
-            .times(2) // два актива
+            .times(2)
             .returning(move |active_id| {
                 if active_id == active1_clone.active_id {
                     Ok(vec![notification1.clone()])
@@ -492,11 +463,11 @@ mod tests {
                 }
             });
 
-        let mut prices_cache = MockSecurityCurrentPriceCache::new();
-        prices_cache
+        let mut price_cache_service = MockAbstractPriceCacheService::new();
+        price_cache_service
             .expect_get_price()
             .times(2)
-            .returning(|_| Ok(Price::rub(100.0))); // цена в пределах нормы
+            .returning(|_| Ok(Price::rub(100.0)));
 
         let mut notification_sender = MockNotificationSender::new();
         notification_sender
@@ -511,18 +482,15 @@ mod tests {
             .expect_create_sent()
             .returning(|_| Ok(Faker.fake()));
 
-        let service = setup_service(
-            Arc::new(user_repo),
-            Arc::new(active_repo),
-            Arc::new(notification_repo),
-            Arc::new(sent_repo),
-            Arc::new(MockAbstractPriceRefresherService::new()),
-            Arc::new(prices_cache),
-            Arc::new(notification_sender),
-        );
+        let service = LimitMonitorService {
+            user_repo: Arc::new(user_repo),
+            active_repo: Arc::new(active_repo),
+            notification_repo: Arc::new(notification_repo),
+            sent_repo: Arc::new(sent_repo),
+            price_cache_service: Arc::new(price_cache_service),
+            notification_sender: Arc::new(notification_sender),
+        };
 
-        // Act & Assert
-        // Если метод выполнится без ошибок, значит всё прошло успешно
         let result = service.send_exeeding_messages().await;
         assert!(result.is_ok());
     }

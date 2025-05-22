@@ -1,0 +1,17 @@
+# https://rust-lang.github.io/rustfmt/?version=v1.8.0&search=#imports_layout
+unstable_features = true
+reorder_modules = true
+reorder_imports = true
+max_width = 100
+imports_granularity = "Crate"
+imports_layout = "Vertical"
+group_imports = "StdExternalCrate"
+reorder_impl_items = true
+blank_lines_upper_bound = 1
+trailing_comma = "Vertical"
+struct_lit_single_line = true
+use_field_init_shorthand = true
+use_try_shorthand = true
+fn_params_layout = "Tall"
+match_block_trailing_comma = true
+normalize_comments = true

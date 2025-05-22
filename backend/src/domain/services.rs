@@ -1,8 +1,8 @@
 mod active_service;
 mod limit_monitor_service;
 mod notification_service;
-mod price_refresher_service;
-mod prices_service;
+mod price_cache_service;
+mod price_ops_service;
 mod sent_service;
 mod user_service;
 
@@ -18,13 +18,13 @@ pub use notification_service::{
     NotificationService,
     NotificationServiceParameters,
 };
-pub use price_refresher_service::{
-    PriceRefresherService,
-    PriceRefresherServiceParameters,
+pub use price_cache_service::{
+    PriceCacheService,
+    PriceCacheServiceParameters,
 };
-pub use prices_service::{
-    PricesService,
-    PricesServiceParameters,
+pub use price_ops_service::{
+    PriceOpsService,
+    PriceOpsServiceParameters,
 };
 pub use sent_service::{
     SentService,
