@@ -1,0 +1,15 @@
+# uses for e2e tests
+log_level: INFO
+log_filepath: stdout
+refresh_interval_sec: 5
+notify_interval_sec: 5
+api_cors_origins:
+  - http://localhost:4400
+  - https://stocks-tracker.ru
+  - https://stocks-tracker.serveo.net
+  - https://stocks-tracker.ru.website.yandexcloud.net
+api_server_port: 3000
+moex_base_url: https://iss.moex.com
+postgres_connection_string: set this var via .env APP_POSTGRES_CONNECTION_STRING
+redis_connection_string: set this var via .env APP_REDIS_CONNECTION_STRING
+telegram_bot_token: set this var via .env APP_TELEGRAM_BOT_TOKEN

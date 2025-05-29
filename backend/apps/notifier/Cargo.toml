@@ -1,0 +1,14 @@
+[package]
+name = "notifier"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# stocks_tracker libs
+domain = { path = "../../libs/domain" }
+adapters = { path = "../../libs/adapters" }
+
+# other
+tokio = { version = "1.29.1", features = ["full"] }
+shaku = "0.6.2"
+tracing = { version = "0.1", features = ["attributes"] }
