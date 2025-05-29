@@ -1,8 +1,6 @@
 [alias]
-api = 'run --bin api'
-cli = 'run --bin cli'
-refresher = 'run --bin refresher'
-notifier = 'run --bin notifier'
-
-[build]
-target-dir = 'target'
+api = 'run -p api --'
+cli = 'run -p cli --'
+refresher = 'run -p refresher --'
+notifier = 'run -p notifier --'
+migration = 'run -p migration --'
