@@ -1,0 +1,1 @@
+export { <%= pascalCase(name) %>Async as <%= pascalCase(name) %> } from './<%= name %>.async';

@@ -1,0 +1,87 @@
+.homePage {
+    @apply text-2xl;
+}
+
+.formContainer {
+  margin-bottom: 30px;
+  padding: 20px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.formGroup label {
+  font-weight: bold;
+}
+
+.formGroup input {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.submitButton {
+    padding: 10px 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.submitButton:hover {
+  background-color: #3a80d2;
+}
+
+.activesList {
+  margin-top: 20px;
+}
+
+.activeItem {
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  transition: background-color 0.2s;
+  position: relative;
+}
+
+.activeItem:hover {
+  background-color: #f0f0f0;
+}
+
+.activeLink {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.deleteButton {
+    padding: 8px 12px;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-top: 8px;
+    display: inline-block;
+}
+
+.deleteButton:hover {
+    background-color: #c82333;
+}

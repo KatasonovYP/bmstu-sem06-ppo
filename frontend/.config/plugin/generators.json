@@ -1,0 +1,19 @@
+{
+    "name": "Nx My",
+    "version": "0.1",
+    "extends": ["@nx/workspace"],
+    "generators": {
+        "component": {
+            "factory": "./src/generators/component/generator",
+            "schema": "./src/generators/component/schema.json",
+            "description": "component generator",
+            "aliases": ["c", "component"]
+        },
+        "slice": {
+            "factory": "./src/generators/slice/generator",
+            "schema": "./src/generators/slice/schema.json",
+            "description": "slice generator",
+            "aliases": ["s", "slice", "fsd-slice"]
+        }
+    }
+}

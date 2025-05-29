@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.meta.name }}-notifier-deployment
+  namespace: {{ .Values.meta.namespace }}
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  replicas: {{ .Values.scaling.minReplicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.meta.name }}-notifier
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: {{ .Values.rollingUpdate.maxUnavailable }}
+      maxSurge: {{ .Values.rollingUpdate.maxSurge }}
+  template:
+    metadata:
+      namespace: {{ .Values.meta.namespace }}
+      labels:
+        app: {{ .Values.meta.name }}-notifier
+    spec:
+      containers:
+        - name: {{ .Values.meta.name }}-notifier
+          image: {{ .Values.image.repository }}/notifier:{{ .Values.image.tag }}
+          command: {{ .Values.image.command }}
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: {{ .Values.meta.name }}-config
+            - secretRef:
+                name: {{ .Values.meta.name }}-secret
+          resources:
+            limits:
+              cpu: {{ .Values.resources.limits.cpu }}
+              memory: {{ .Values.resources.limits.memory }}
+            requests:
+              cpu: {{ .Values.resources.requests.cpu }}
+              memory: {{ .Values.resources.requests.memory }}
