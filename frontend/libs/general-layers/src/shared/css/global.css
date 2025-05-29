@@ -1,0 +1,34 @@
+@import './variables/clear.css';
+@import './variables/tailwind.css';
+@import './variables/variables.css';
+@import './variables/components.css';
+@import './themes/colors.css';
+
+html {
+    overflow-x: hidden;
+}
+
+body {
+    background-color: white;
+    margin-right: calc(100% - 100vw);
+    color: var(--color__text-base);
+    font: var(--font-sm);
+    font-weight: 400;
+    scroll-behavior: smooth;
+}
+
+p {
+    white-space: pre-wrap;
+}
+
+*::-webkit-scrollbar {
+    width: var(--scrollbar-width);
+    background: var(--scrollbar-color-bg);
+}
+
+*::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-color);
+    background-clip: content-box;
+    border: var(--scrollbar-border);
+    border-radius: var(--scrollbar-border-radius);
+}

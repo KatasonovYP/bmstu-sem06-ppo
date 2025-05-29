@@ -1,0 +1,100 @@
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - when: never
+
+
+stages:
+  - build
+  - deploy
+
+build-frontend:
+  stage: build
+  rules:
+    - if: $CI_COMMIT_TAG || $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $CI_DEFAULT_BRANCH
+      variables:
+        ENVIRONMENT_NAME: "production"
+    - when: always
+  when: manual
+  variables:
+    ENVIRONMENT_NAME: "testing"
+  environment: $ENVIRONMENT_NAME
+  image: node:23.11.0-slim
+  before_script:
+    - cd frontend
+    - yarn
+  script:
+    - yarn nx build app
+  artifacts:
+    paths:
+      - frontend/dist/apps/app/
+    when: always
+
+deploy-frontend:
+  stage: deploy
+  rules:
+    - if: $CI_COMMIT_TAG || $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $CI_DEFAULT_BRANCH
+      variables:
+        ENVIRONMENT_NAME: "production"
+    - when: manual
+  when: manual
+  variables:
+    ENVIRONMENT_NAME: "testing"
+  environment: $ENVIRONMENT_NAME
+  image:
+    name: amazon/aws-cli:2.27.4
+    entrypoint:
+      - '/usr/bin/env'
+  script:
+    - >-
+      aws
+      --endpoint-url=$ENDPOINT_URL
+      --region ru-central1
+      s3 sync frontend/dist/apps/app s3://$S3_BUCKET
+
+build-backend:
+  stage: build
+  when: manual
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+  parallel:
+    matrix:
+      - APP: ["api", "migration", "notifier"]
+  script:
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"${CI_REGISTRY}\":{\"auth\":\"$(echo -n "json_key:${CI_REGISTRY_KEY}" | base64 | tr -d '\n' )\"}}}" > /kaniko/.docker/config.json
+    - >-
+      /kaniko/executor
+      --context "${CI_PROJECT_DIR}/backend"
+      --dockerfile "${CI_PROJECT_DIR}/backend/Dockerfile"
+      --build-arg "APP=${APP}"
+      --destination "${CI_REGISTRY}/${CI_PROJECT_PATH}/${APP}:${CI_COMMIT_SHORT_SHA}"
+
+deploy-backend:
+  stage: deploy
+  when: manual
+  rules:
+    - if: $CI_COMMIT_TAG || $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME == $CI_DEFAULT_BRANCH
+      variables:
+        ENVIRONMENT_NAME: "production"
+    - when: manual
+  variables:
+    ENVIRONMENT_NAME: "testing"
+  environment: $ENVIRONMENT_NAME
+  image: alpine/k8s:1.30.12
+  script:
+    - kubectl config use-context ${CI_PROJECT_PATH}:yandex-cloud-k3s
+    - HELM_NAME="stocks-tracker-${CI_ENVIRONMENT_NAME}"
+    - >-
+      helm
+      -n stocks-tracker
+      upgrade ${HELM_NAME}-release ./infra/charts/stocks-tracker
+      --install
+      --atomic
+      --set "meta.name=${HELM_NAME}"
+      --set "image.tag=${CI_COMMIT_SHORT_SHA}"
+      --set "secret.APP_POSTGRES_CONNECTION_STRING=${APP_POSTGRES_CONNECTION_STRING}"
+      --set "secret.APP_REDIS_CONNECTION_STRING=${APP_REDIS_CONNECTION_STRING}"
+      --set "secret.APP_TELEGRAM_BOT_TOKEN=${APP_TELEGRAM_BOT_TOKEN}"
