@@ -59,4 +59,4 @@
 
 ### UML
 
-![image](./docs/images/uml.png)
+![image](./docs/images/uml-v2.png)

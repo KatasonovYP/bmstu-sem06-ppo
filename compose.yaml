@@ -44,7 +44,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: backend
-    restart: always
+    restart: unless-stopped
     depends_on:
       - postgres
     ports:
