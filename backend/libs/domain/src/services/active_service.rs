@@ -45,7 +45,9 @@ impl AbstractActiveService for ActiveService {
 
     #[tracing::instrument(skip(self), err(Debug), ret)]
     async fn create_active(&self, active: ActiveEntity) -> Result<ActiveEntity, DomainError> {
-        self.price_ops_service.get_active_current_price(&active).await?;
+        self.price_ops_service
+            .get_active_current_price(&active)
+            .await?;
         self.active_repository.create_active(active).await
     }
 
@@ -61,7 +63,9 @@ impl AbstractActiveService for ActiveService {
 
     #[tracing::instrument(skip(self), err(Debug), ret)]
     async fn update_active(&self, active: ActiveEntity) -> Result<ActiveEntity, DomainError> {
-        self.price_ops_service.get_active_current_price(&active).await?;
+        self.price_ops_service
+            .get_active_current_price(&active)
+            .await?;
         self.active_repository.update_active(active).await
     }
 
@@ -130,7 +134,7 @@ mod tests {
     #[tokio::test]
     async fn should_create_active() {
         let mut mock_active_repository = MockActiveRepository::new();
-        let mock_price_ops_service = MockAbstractPriceOpsService::new();
+        let mut mock_price_ops_service = MockAbstractPriceOpsService::new();
 
         let input_active: ActiveEntity = Faker.fake();
 
@@ -142,6 +146,11 @@ mod tests {
             .expect_create_active()
             .with(eq(input_active.clone()))
             .returning(move |_| Ok(mock_active.clone()));
+
+        mock_price_ops_service
+            .expect_get_active_current_price()
+            .with(eq(input_active.clone()))
+            .returning(move |_| Ok(Faker.fake()));
 
         let active_service = ActiveService::new(
             Arc::new(mock_active_repository),
