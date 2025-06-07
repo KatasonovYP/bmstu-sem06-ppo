@@ -8,6 +8,7 @@ pub struct NotificationEntity {
     pub active_id: u32,
     pub limit_upper: Price,
     pub limit_lower: Price,
+    pub resend_interval_sec: u32,
 }
 
 impl PartialEq for NotificationEntity {

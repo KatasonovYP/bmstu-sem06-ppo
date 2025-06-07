@@ -32,6 +32,7 @@ export default function ActivePage(props: ActivePageProps) {
         limit_lower: '',
         limit_upper: '',
         limit_type: '',
+        resend_interval_sec: '',
     });
 
     // Handle input changes
@@ -55,6 +56,8 @@ export default function ActivePage(props: ActivePageProps) {
                     limit_upper: parseFloat(newNotification.limit_upper),
                     limit_type: 'RUB',
                     portfolio_id: 0,
+                    resend_interval_sec:
+                        parseInt(newNotification.resend_interval_sec, 10) || 0,
                 },
             }).unwrap();
 
@@ -64,6 +67,7 @@ export default function ActivePage(props: ActivePageProps) {
                 limit_lower: '',
                 limit_upper: '',
                 limit_type: '',
+                resend_interval_sec: '',
             });
             refetch();
         } catch (error) {
@@ -130,6 +134,21 @@ export default function ActivePage(props: ActivePageProps) {
                         />
                     </div>
 
+                    <div>
+                        <label htmlFor='resend_interval_sec'>
+                            Resend Interval (sec):
+                        </label>
+                        <input
+                            type='number'
+                            id='resend_interval_sec'
+                            name='resend_interval_sec'
+                            min='0'
+                            value={newNotification.resend_interval_sec}
+                            onChange={handleInputChange}
+                            required
+                        />
+                    </div>
+
                     <button
                         type='submit'
                         className={cls.submitButton}
@@ -154,6 +173,10 @@ export default function ActivePage(props: ActivePageProps) {
                                 <p>Lower Limit: {notification.limit_lower}</p>
                                 <p>Upper Limit: {notification.limit_upper}</p>
                                 <p>Limit Type: {notification.limit_type}</p>
+                                <p>
+                                    Resend Interval (sec):{' '}
+                                    {notification.resend_interval_sec}
+                                </p>
                             </div>
                         </div>
                         <button

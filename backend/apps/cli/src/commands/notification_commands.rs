@@ -22,6 +22,8 @@ pub enum NotificationCommands {
         limit_lower: f64,
         #[arg(long)]
         limit_type: String,
+        #[arg(long)]
+        resend_interval_sec: u32,
     },
     Update {
         #[arg(long)]
@@ -36,6 +38,8 @@ pub enum NotificationCommands {
         limit_lower: f64,
         #[arg(long)]
         limit_type: String,
+        #[arg(long)]
+        resend_interval_sec: u32,
     },
     List,
     ListActiveNotifications {
@@ -60,12 +64,14 @@ impl TryFrom<&NotificationCommands> for NotificationEntity {
                 limit_upper,
                 limit_lower,
                 limit_type,
+                resend_interval_sec,
             } => Ok(NotificationEntity {
                 notification_id: *notification_id,
                 portfolio_id: *portfolio_id,
                 active_id: *active_id,
                 limit_upper: Price::new(*limit_upper, limit_type.clone()),
                 limit_lower: Price::new(*limit_lower, limit_type.clone()),
+                resend_interval_sec: *resend_interval_sec,
             }),
             NotificationCommands::Create {
                 portfolio_id,
@@ -73,12 +79,14 @@ impl TryFrom<&NotificationCommands> for NotificationEntity {
                 limit_upper,
                 limit_lower,
                 limit_type,
+                resend_interval_sec,
             } => Ok(NotificationEntity {
                 notification_id: Default::default(),
                 portfolio_id: *portfolio_id,
                 active_id: *active_id,
                 limit_upper: Price::new(*limit_upper, limit_type.clone()),
                 limit_lower: Price::new(*limit_lower, limit_type.clone()),
+                resend_interval_sec: *resend_interval_sec,
             }),
             _ => Err(Self::Error::ValidationError(
                 "Command can't be converted into NotificationEntity".into(),

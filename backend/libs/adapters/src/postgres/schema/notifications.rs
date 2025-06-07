@@ -19,6 +19,7 @@ pub struct Model {
     #[sea_orm(column_type = "Double")]
     pub limit_lower: f64,
     pub limit_type: String,
+    pub resend_interval_sec: i32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

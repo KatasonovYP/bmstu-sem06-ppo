@@ -39,6 +39,12 @@ impl MigrationTrait for Migration {
                             .string()
                             .not_null(),
                     )
+                    .col(
+                        ColumnDef::new(Notifications::ResendIntervalSec)
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_active")
@@ -87,6 +93,7 @@ enum Notifications {
     LimitUpper,
     LimitLower,
     LimitType,
+    ResendIntervalSec,
 }
 
 #[derive(DeriveIden)]

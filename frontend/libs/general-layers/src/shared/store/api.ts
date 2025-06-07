@@ -232,6 +232,7 @@ export type NotificationResponse = {
     limit_upper: number;
     notification_id: number;
     portfolio_id: number;
+    resend_interval_sec: number;
 };
 export type NotificationRequest = {
     active_id: number;
@@ -239,6 +240,7 @@ export type NotificationRequest = {
     limit_type: string;
     limit_upper: number;
     portfolio_id: number;
+    resend_interval_sec: number;
 };
 export type UserResponse = {
     chat_id: number;
