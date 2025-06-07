@@ -13,6 +13,7 @@ pub struct NotificationResponse {
     pub limit_upper: f64,
     pub limit_lower: f64,
     pub limit_type: String,
+    pub resend_interval_sec: i32,
 }
 
 impl From<NotificationEntity> for NotificationResponse {
@@ -24,6 +25,7 @@ impl From<NotificationEntity> for NotificationResponse {
             limit_upper: notification_entity.limit_upper.amount,
             limit_lower: notification_entity.limit_lower.amount,
             limit_type: notification_entity.limit_upper.currency.value,
+            resend_interval_sec: notification_entity.resend_interval_sec as i32,
         }
     }
 }
@@ -43,6 +45,7 @@ impl From<NotificationResponse> for NotificationEntity {
             active_id: notification_response.active_id as u32,
             limit_upper,
             limit_lower,
+            resend_interval_sec: notification_response.resend_interval_sec as u32,
             ..Default::default()
         }
     }
@@ -55,6 +58,7 @@ pub struct NotificationRequest {
     pub limit_upper: f64,
     pub limit_lower: f64,
     pub limit_type: String,
+    pub resend_interval_sec: i32,
 }
 
 impl From<NotificationEntity> for NotificationRequest {
@@ -65,6 +69,7 @@ impl From<NotificationEntity> for NotificationRequest {
             limit_upper: notification_entity.limit_upper.amount,
             limit_lower: notification_entity.limit_lower.amount,
             limit_type: notification_entity.limit_upper.currency.value,
+            resend_interval_sec: notification_entity.resend_interval_sec as i32,
         }
     }
 }
@@ -87,6 +92,7 @@ impl TryFrom<NotificationRequest> for NotificationEntity {
             active_id: notification_request.active_id as u32,
             limit_upper,
             limit_lower,
+            resend_interval_sec: notification_request.resend_interval_sec as u32,
             ..Default::default()
         })
     }

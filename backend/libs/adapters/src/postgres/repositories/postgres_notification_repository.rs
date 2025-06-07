@@ -131,6 +131,7 @@ impl From<notifications::Model> for NotificationEntity {
             active_id: orm_notification.active_id as u32,
             limit_upper,
             limit_lower,
+            resend_interval_sec: orm_notification.resend_interval_sec as u32,
         }
     }
 }
@@ -151,6 +152,7 @@ impl From<NotificationEntity> for notifications::ActiveModel {
             limit_upper: Set(entity.limit_upper.amount),
             limit_lower: Set(entity.limit_lower.amount),
             limit_type: Set(entity.limit_upper.currency.value),
+            resend_interval_sec: Set(entity.resend_interval_sec as i32),
         }
     }
 }

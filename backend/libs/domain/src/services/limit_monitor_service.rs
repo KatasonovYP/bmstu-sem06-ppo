@@ -78,9 +78,19 @@ impl LimitMonitorService {
             for notification in notifications {
                 let notification_id = notification.notification_id;
                 let sent = self.sent_repo.get_sent(notification_id).await;
-                if sent.is_ok() {
+                let should_send = match sent {
+                    Ok(sent) => {
+                        let now = chrono::Utc::now().naive_utc();
+                        let time_since_last = now.signed_duration_since(sent.last_message_time);
+                        time_since_last.num_seconds() >= notification.resend_interval_sec as i64
+                    },
+                    Err(_) => true,
+                };
+
+                if !should_send {
                     continue;
                 }
+
                 let current_price = self.price_cache_service.get_price(active).await?;
                 let is_active_limit_exceeded = notification.limit_lower > current_price
                     || current_price > notification.limit_upper;
@@ -145,6 +155,7 @@ mod tests {
         models::{
             ActiveEntity,
             NotificationEntity,
+            SentEntity,
             UserEntity,
         },
         ports::{
@@ -168,6 +179,7 @@ mod tests {
 
         notification.limit_lower = Price::rub(90.0);
         notification.limit_upper = Price::rub(110.0);
+        notification.resend_interval_sec = 3600; // 1 hour
 
         let current_price = Price::rub(100.0);
 
@@ -216,6 +228,7 @@ mod tests {
 
         notification.limit_lower = Price::rub(90.0);
         notification.limit_upper = Price::rub(110.0);
+        notification.resend_interval_sec = 3600; // 1 hour
 
         let current_price = Price::rub(85.0);
 
@@ -477,5 +490,114 @@ mod tests {
 
         let result = service.send_exeeding_messages().await;
         assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn should_not_trigger_notification_when_resend_interval_not_passed() {
+        let user: UserEntity = Faker.fake();
+        let active: ActiveEntity = Faker.fake();
+        let mut notification: NotificationEntity = Faker.fake();
+
+        notification.limit_lower = Price::rub(90.0);
+        notification.limit_upper = Price::rub(110.0);
+        notification.resend_interval_sec = 3600; // 1 hour
+
+        let current_price = Price::rub(85.0);
+
+        let mut price_cache_service = MockAbstractPriceCacheService::new();
+        price_cache_service
+            .expect_get_price()
+            .with(eq(active.clone()))
+            .returning(move |_| Ok(current_price.clone()));
+
+        let mut notification_repo = MockNotificationRepository::new();
+        notification_repo
+            .expect_list_active_notifications()
+            .with(eq(active.active_id))
+            .returning(move |_| Ok(vec![notification.clone()]));
+
+        let mut active_repo = MockActiveRepository::new();
+        active_repo
+            .expect_list_user_actives()
+            .with(eq(user.user_id))
+            .returning(move |_| Ok(vec![active.clone()]));
+
+        let mut sent_repo = MockSentRepository::new();
+        sent_repo.expect_get_sent().returning(|_| {
+            Ok(SentEntity {
+                notification_id: 1,
+                last_message_time: chrono::Utc::now().naive_utc(), // Just sent
+            })
+        });
+
+        let service = LimitMonitorService {
+            user_repo: Arc::new(MockUserRepository::new()),
+            active_repo: Arc::new(active_repo),
+            notification_repo: Arc::new(notification_repo),
+            sent_repo: Arc::new(sent_repo),
+            price_cache_service: Arc::new(price_cache_service),
+            notification_sender: Arc::new(MockNotificationSender::new()),
+        };
+
+        let triggered = service.get_user_exeeding_messages(&user).await.unwrap();
+
+        assert!(triggered.is_empty());
+    }
+
+    #[tokio::test]
+    async fn should_trigger_notification_when_resend_interval_passed() {
+        let user: UserEntity = Faker.fake();
+        let active: ActiveEntity = Faker.fake();
+        let mut notification: NotificationEntity = Faker.fake();
+
+        notification.limit_lower = Price::rub(90.0);
+        notification.limit_upper = Price::rub(110.0);
+        notification.resend_interval_sec = 3600; // 1 hour
+
+        let current_price = Price::rub(85.0);
+
+        let mut price_cache_service = MockAbstractPriceCacheService::new();
+        price_cache_service
+            .expect_get_price()
+            .with(eq(active.clone()))
+            .returning(move |_| Ok(current_price.clone()));
+
+        let mut notification_repo = MockNotificationRepository::new();
+        notification_repo
+            .expect_list_active_notifications()
+            .with(eq(active.active_id))
+            .returning(move |_| Ok(vec![notification.clone()]));
+
+        let mut active_repo = MockActiveRepository::new();
+        active_repo
+            .expect_list_user_actives()
+            .with(eq(user.user_id))
+            .returning(move |_| Ok(vec![active.clone()]));
+
+        let mut sent_repo = MockSentRepository::new();
+        sent_repo
+            .expect_get_sent()
+            .returning(|_| {
+                Ok(SentEntity {
+                    notification_id: 1,
+                    last_message_time: chrono::Utc::now().naive_utc() - chrono::Duration::hours(2), // Sent 2 hours ago
+                })
+            });
+        sent_repo
+            .expect_create_sent()
+            .returning(|_| Ok(Faker.fake()));
+
+        let service = LimitMonitorService {
+            user_repo: Arc::new(MockUserRepository::new()),
+            active_repo: Arc::new(active_repo),
+            notification_repo: Arc::new(notification_repo),
+            sent_repo: Arc::new(sent_repo),
+            price_cache_service: Arc::new(price_cache_service),
+            notification_sender: Arc::new(MockNotificationSender::new()),
+        };
+
+        let triggered = service.get_user_exeeding_messages(&user).await.unwrap();
+
+        assert_eq!(triggered.len(), 1);
     }
 }
