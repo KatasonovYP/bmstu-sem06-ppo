@@ -86,7 +86,7 @@ export default function HomePage(props: HomePageProps) {
 
     return (
         <div>
-            <h1>Add New Active</h1>
+            <h1>Добавить новый актив</h1>
 
             <div className={cls.formContainer}>
                 <form
@@ -94,7 +94,7 @@ export default function HomePage(props: HomePageProps) {
                     className={cls.form}
                 >
                     <div className={cls.formGroup}>
-                        <label htmlFor='security_id'>Security ID:</label>
+                        <label htmlFor='security_id'>ID ценной бумаги:</label>
                         <input
                             type='text'
                             id='security_id'
@@ -106,7 +106,7 @@ export default function HomePage(props: HomePageProps) {
                     </div>
 
                     <div className={cls.formGroup}>
-                        <label htmlFor='bought_price'>Bought Price:</label>
+                        <label htmlFor='bought_price'>Закупочная цена:</label>
                         <input
                             type='number'
                             id='bought_price'
@@ -119,7 +119,7 @@ export default function HomePage(props: HomePageProps) {
                     </div>
 
                     <div className={cls.formGroup}>
-                        <label htmlFor='count'>Count:</label>
+                        <label htmlFor='count'>Количество:</label>
                         <input
                             type='number'
                             id='count'
@@ -136,7 +136,7 @@ export default function HomePage(props: HomePageProps) {
                         type='submit'
                         className={cls.submitButton}
                     >
-                        Create Active
+                        Создать актив
                     </button>
                 </form>
             </div>
@@ -157,10 +157,10 @@ export default function HomePage(props: HomePageProps) {
                             className={cls.activeLink}
                         >
                             <div>
-                                <p>Security ID: {active.security_id}</p>
-                                <p>Bought Price: {active.bought_price}</p>
-                                <p>Count: {active.count}</p>
-                                <p>Currency: {active.currency}</p>
+                                <p>ID ценной бумаги: {active.security_id}</p>
+                                <p>Закупочная цена: {active.bought_price}</p>
+                                <p>Количество: {active.count}</p>
+                                <p>Валюта: {active.currency}</p>
                             </div>
                         </Link>
                         <button
@@ -169,11 +169,11 @@ export default function HomePage(props: HomePageProps) {
                                 handleDeleteActive(e, active.active_id)
                             }
                         >
-                            Delete
+                            Удалить
                         </button>
                     </div>
                 ))}
-                {actives?.length === 0 && <p>No actives found.</p>}
+                {actives?.length === 0 && <p>Активы не найдены.</p>}
             </div>
         </div>
     );
