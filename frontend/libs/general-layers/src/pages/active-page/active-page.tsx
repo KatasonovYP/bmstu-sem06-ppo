@@ -13,7 +13,7 @@ export default function ActivePage(props: ActivePageProps) {
     const { className } = props;
     const { activeId: activeIdString } = useParams();
     if (!activeIdString) {
-        return <div>wrong active id</div>;
+        return <div>Неверный ID актива</div>;
     }
     const activeId = +activeIdString;
     const { currentData: active } = stocksTracker.useGetActiveQuery({
@@ -94,22 +94,22 @@ export default function ActivePage(props: ActivePageProps) {
     return (
         <div className={cn(className, cls.activePage)}>
             <Link to={staticRoutes.home}>
-                <h1>Go back</h1>
+                <h1>Вернуться к активам</h1>
             </Link>
-            <h1>security_id: {active?.security_id}</h1>
-            <h1>bought_price: {active?.bought_price}</h1>
-            <h1>count: {active?.count}</h1>
-            <h1>currency: {active?.currency}</h1>
+            <h1>ID ценной бумаги: {active?.security_id}</h1>
+            <h1>Цена закупки: {active?.bought_price}</h1>
+            <h1>количество: {active?.count}</h1>
+            <h1>валюта: {active?.currency}</h1>
 
             <div>
-                <h1>Add New Notification</h1>
+                <h1>Добавить новую нотификацию</h1>
 
                 <form
                     onSubmit={handleSubmit}
                     className={cls.form}
                 >
                     <div>
-                        <label htmlFor='limit_lower'>Lower Limit:</label>
+                        <label htmlFor='limit_lower'>Нижний порог:</label>
                         <input
                             type='number'
                             id='limit_lower'
@@ -122,7 +122,7 @@ export default function ActivePage(props: ActivePageProps) {
                     </div>
 
                     <div>
-                        <label htmlFor='limit_upper'>Upper Limit:</label>
+                        <label htmlFor='limit_upper'>Верхний порог:</label>
                         <input
                             type='number'
                             id='limit_upper'
@@ -136,7 +136,7 @@ export default function ActivePage(props: ActivePageProps) {
 
                     <div>
                         <label htmlFor='resend_interval_sec'>
-                            Resend Interval (sec):
+                            Интервал переотправки (секунды):
                         </label>
                         <input
                             type='number'
@@ -153,13 +153,13 @@ export default function ActivePage(props: ActivePageProps) {
                         type='submit'
                         className={cls.submitButton}
                     >
-                        Create Notification
+                        Создать уведомление
                     </button>
                 </form>
             </div>
 
             <div>
-                <h2>Notifications</h2>
+                <h2>Уведомления</h2>
                 {notifications?.map((notification) => (
                     <div
                         key={notification.notification_id}
@@ -170,11 +170,11 @@ export default function ActivePage(props: ActivePageProps) {
                             className={cls.notificationLink}
                         >
                             <div>
-                                <p>Lower Limit: {notification.limit_lower}</p>
-                                <p>Upper Limit: {notification.limit_upper}</p>
-                                <p>Limit Type: {notification.limit_type}</p>
+                                <p>Нижний порог: {notification.limit_lower}</p>
+                                <p>Верхний порог: {notification.limit_upper}</p>
+                                <p>Тип порога: {notification.limit_type}</p>
                                 <p>
-                                    Resend Interval (sec):{' '}
+                                    Интервал переотправки (секунды):{' '}
                                     {notification.resend_interval_sec}
                                 </p>
                             </div>
@@ -188,12 +188,12 @@ export default function ActivePage(props: ActivePageProps) {
                                 )
                             }
                         >
-                            Delete
+                            Удалить
                         </button>
                     </div>
                 ))}
                 {notifications?.length === 0 && (
-                    <p>No notifications found for this active.</p>
+                    <p>Нотификации не найдены для этого актива.</p>
                 )}
             </div>
         </div>
