@@ -6,3 +6,5 @@ pub mod actives;
 pub mod notifications;
 pub mod sent;
 pub mod users;
+
+seaography::register_entity_modules!([actives, notifications, sent, users,]);

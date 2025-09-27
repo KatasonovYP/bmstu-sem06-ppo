@@ -3,9 +3,10 @@ resolver = "3"
 members = [
     "libs/domain",
     "libs/adapters",
+    "apps/admin",
     "apps/api",
     "apps/cli",
     "apps/refresher",
     "apps/notifier",
-    "apps/migration"
+    "apps/migration",
 ]

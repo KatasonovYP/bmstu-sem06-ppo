@@ -49,3 +49,11 @@ impl Related<super::sent::Entity> for Entity {
 }
 
 impl ActiveModelBehavior for ActiveModel {}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelatedEntity)]
+pub enum RelatedEntity {
+    #[sea_orm(entity = "super::actives::Entity")]
+    Actives,
+    #[sea_orm(entity = "super::sent::Entity")]
+    Sent,
+}
