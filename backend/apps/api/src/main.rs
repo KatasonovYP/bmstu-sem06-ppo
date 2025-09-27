@@ -24,7 +24,9 @@ use controllers::{
     ApiUserController,
 };
 use http::{
-    HeaderName, HeaderValue, Method
+    HeaderName,
+    HeaderValue,
+    Method,
 };
 use middlewares::jwt_middleware::JwtAuth;
 use shaku::HasComponent;
@@ -58,7 +60,10 @@ async fn main() {
     #[openapi(
         modifiers(&SecurityAddon),
         tags(
-            (name = "active", description = "Todo items management API")
+            (name = "active", description = "CRUD операции над активами пользователя"),
+            (name = "notification", description = "CRUD операции над нотификациями пользователя"),
+            (name = "user", description = "CRUD операции над пользователями"),
+            (name = "auth", description = "Операции, связанные с авторизацией и аутентификацией"),
         )
     )]
     struct ApiDoc;

@@ -68,6 +68,7 @@ impl ApiAuthController {
     post,
     path = "/login",
     tag = "auth",
+    description = "Обменивает tma токен на JWT токен приложения, с метаинформацией о пользователе",
     responses(
         (status = 200, description = "Login successful", body = LoginResponse),
         (status = 401, description = "Unauthorized", body = String)

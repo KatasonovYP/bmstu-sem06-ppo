@@ -35,13 +35,25 @@
 2. [ценная бумага](https://iss.moex.com/iss/securities/IMOEX)
 3. [рынки](https://iss.moex.com/iss/engines)
 
-## Entity Relations диаграмма
+## ER диаграмма
 
-![image](./docs/images/er.png)
+![image](./docs/images/er-chen.png)
+
+## Диаграмма БД
+
+![image](./docs/images/er-martin.png)
 
 ## Use cases
 
-### Активы
+![image](./docs/images/use-cases.png)
+
+## BPMN
+
+![image](./docs/images/bpmn-01.jpg)
+
+![image](./docs/images/bpmn-02.jpg)
+
+<!-- ### Активы
 
 ![image](./docs/images/use-cases-01-active.png)
 
@@ -55,8 +67,61 @@
 
 ### Сложные
 
-![image](./docs/images/use-cases-04-complex.png)
+![image](./docs/images/use-cases-04-complex.png) -->
 
 ### UML
 
 ![image](./docs/images/uml-v2.png)
+
+### Components
+
+![image](./docs/images/components.jpg)
+
+![image](./docs/images/api-component.jpg)
+
+![image](./docs/images/notifier-component.jpg)
+
+![image](./docs/images/refresher-component.jpg)
+
+### Архитектура фронтэнд приложения
+
+Стек:
+
+- react -- библиотека для отрисовки компонентов
+- redux -- стейт менедждмент
+- vite -- сборка статики статики
+- shadcn -- библиотека компонентов
+- tailwind -- css библиотека, используется в shadcn
+- storybook -- витрина компонентов для автоматического документирования
+- nx -- структура, скрипты, генерация компонентов
+
+В качестве архитектуры будет использоваться [FSD](https://feature-sliced.design/docs)
+
+![alt text](docs/images/fsd.png)
+
+ссылка на [figma](https://www.figma.com/design/Xe40VmC8jc4humaiORuOx3/-shadcn-ui---Design-System--Community---Copy-?node-id=1103-995&t=hMLxsIYSduqq0UeS-1)
+
+![alt text](docs/images/preview.jpg)
+
+### Архитектура бекенд приложения
+
+Стек:
+
+- rust -- язык программирования
+- axum -- REST фреймворк
+- seaORM -- ORM для postgres
+- redis -- библиотека для redis
+
+Архитектура -- классическая чистая.
+
+## Доработки
+
+- документация сделать конвертацию md в html
+- (?) доделать healthcheck
+- настроить healthcheck на traefik
+- добавить нагрузочное через CI
+- настроить gzip на s3
+- настроить репликацию базы данных
+- настроить реплики API приложения через RO connection string (в учебных целях)
+- вынести notifications table в отдельную БД. Вынести логику по управлению нотификациями в notifications-service
+- вынести actives table в отдельную БД. Вынести логику по управлению активами в active-service.
