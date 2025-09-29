@@ -130,3 +130,48 @@ impl From<ActiveEntity> for actives::ActiveModel {
         }
     }
 }
+
+// #[cfg(not(feature = "production"))]
+// #[cfg(test)]
+// mod tests {
+//     use fake::{
+//         Fake,
+//         Faker,
+//     };
+//     use mockall::predicate::eq;
+//     use sea_orm::{
+//         DatabaseBackend,
+//         MockDatabase,
+//         Transaction,
+//         entity::{
+//             prelude::*,
+//             *,
+//         },
+//         tests_cfg::*,
+//     };
+
+//     use crate::postgres::schema::actives;
+
+//     #[tokio::test]
+//     async fn test_create_active() {
+//         // let db = MockDatabase::new(DatabaseBackend::Postgres);
+//         // let db = Arc::new(db);
+//         // let db = db
+//         //     .append_query_results([[actives::Model {
+//         //         ..Default::default()
+//         //     }]])
+//         //     .append_exec_results([
+//         //         MockExecResult {
+//         //             last_insert_id: 15,
+//         //             rows_affected: 1,
+//         //         },
+//         //         MockExecResult {
+//         //             last_insert_id: 16,
+//         //             rows_affected: 1,
+//         //         },
+//         //     ])
+//         //     .into_connection();
+//         todo!()
+//         // ActiveRepository::new();
+//     }
+// }
