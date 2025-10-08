@@ -24,6 +24,7 @@ use axum::{
     },
     routing::{
         get,
+        get_service,
         post,
     },
 };
@@ -54,7 +55,7 @@ use tera::Tera;
 #[derive(Clone)]
 struct AppState {
     templates: Tera,
-    conn: DatabaseConnection,
+    connection: DatabaseConnection,
 }
 
 async fn admin_panel_config() -> Result<Json<JsonCfg>, (StatusCode, &'static str)> {
@@ -165,7 +166,7 @@ async fn graphql_handler(
     // Maximum complexity of the constructed query
     const COMPLEXITY: Option<usize> = None;
     // GraphQL schema
-    let schema = schema(state.conn.clone(), DEPTH, COMPLEXITY).unwrap();
+    let schema = schema(state.connection.clone(), DEPTH, COMPLEXITY).unwrap();
     // GraphQL handler
     let res = schema.execute(req.into_inner()).await.into();
     Ok(res)
@@ -204,14 +205,16 @@ async fn main() -> anyhow::Result<()> {
         .build()
         .expect("Failed to build S3 origin");
 
-    let conn = Database::connect(settings.postgres_connection_string)
+    let connection = Database::connect(settings.postgres_connection_string)
         .await
         .expect("Database connection failed");
 
-    // Migrator::up(&conn, None).await.unwrap();
     let templates = Tera::new(concat!(env!("CARGO_MANIFEST_DIR"), "/templates/**/*"))
         .expect("Tera initialization failed");
-    let state = AppState { templates, conn };
+    let state = AppState {
+        templates,
+        connection,
+    };
     let mut app = Router::new()
         .route("/api/admin/config", get(admin_panel_config))
         .route("/api/auth/login", post(user_login))
@@ -220,9 +223,21 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/graphql", post(graphql_handler));
 
     if settings.local_admin {
-        app = app
-            .route_service("/admin", s3_origin_home.clone())
-            .route_service("/admin/{*path}", s3_origin.clone());
+        // app = app
+        //     .route_service("/admin", s3_origin_home.clone())
+        //     .route_service("/admin/{*path}", s3_origin.clone());
+        app = app.nest_service(
+            "/admin",
+            get_service(
+                ServeDir::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../../target/assets/admin")).fallback(
+                    ServeFile::new(concat!(
+                        env!("CARGO_MANIFEST_DIR"),
+                        "/../../target/assets/admin/index.html"
+                    )),
+                ),
+            ),
+        )
+        ;
     }
 
     let app = app.with_state(state);

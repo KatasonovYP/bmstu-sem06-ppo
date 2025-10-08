@@ -9,7 +9,7 @@ api_cors_origins:
   - https://stocks-tracker.ru.website.yandexcloud.net
 api_server_port: 3000
 moex_base_url: https://iss.moex.com
+local_admin: true
 postgres_connection_string: set this var via .env
 redis_connection_string: set this var via .env
 telegram_bot_token: set this var via .env
-local_admin: true
