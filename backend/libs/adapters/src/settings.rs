@@ -16,6 +16,7 @@ pub struct Settings {
     pub moex_base_url: String,
     pub api_server_port: u16,
     pub api_cors_origins: Vec<String>,
+    pub local_admin: bool,
     pub postgres_connection_string: String,
     pub redis_connection_string: String,
     pub telegram_bot_token: String,

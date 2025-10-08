@@ -28,3 +28,13 @@ spec:
                 name: {{ .Values.meta.name }}-api-service
                 port:
                   number: 80
+    - host: {{ .Values.ingress.admin.host }}
+      http:
+        paths:
+          - pathType: Prefix
+            path: {{ .Values.ingress.admin.path }}
+            backend:
+              service:
+                name: {{ .Values.meta.name }}-admin-service
+                port:
+                  number: 80

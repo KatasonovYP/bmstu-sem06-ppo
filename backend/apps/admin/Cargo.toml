@@ -12,12 +12,6 @@ adapters = { path = "../../libs/adapters" }
 axum = { version = "0.8.1", features = ["tokio", "http1", "tracing"] }
 axum-macros = "0.5.0"
 async-graphql-axum = { version = "7.0" }
-seaography = { version = "1.1", features = [
-    "with-decimal",
-    "with-chrono",
-    "with-uuid",
-    "field-snake-case",
-] }
 sea-orm-pro = { version = "0.1.0" }
 tower-http = { version = "0.6", features = [
     "cors",
@@ -40,7 +34,17 @@ sea-orm = { version = "1.1.8", features = [
     "sqlx-postgres",
     "runtime-tokio-rustls",
     "macros",
+    "mock",
 ] }
+seaography = { version = "1.1.1", features = [
+    "with-decimal",
+    "with-chrono",
+    "with-uuid",
+    "field-snake-case",
+] }
+axum-static-s3 = "0.1.2"
+aws-config = { version = "1.1.7", features = ["behavior-version-latest"] }
+aws-sdk-s3 = { version = "1.108.0", features = ["behavior-version-latest"] }
 
 # Async and runtime
 tokio = { version = "1.29.1", features = ["full"] }
@@ -71,3 +75,6 @@ telegram-authorizer = "0.3.0"
 mockall = { version = "0.13.1", optional = true }
 fake = { version = "4.3", features = ["chrono", "derive"], optional = true }
 jsonwebtoken = "9.3.1"
+
+[patch.crates-io]
+sea-orm = { git = 'https://github.com/KatasonovYP/sea-orm.git', branch = 'fix/seaography-mock' }

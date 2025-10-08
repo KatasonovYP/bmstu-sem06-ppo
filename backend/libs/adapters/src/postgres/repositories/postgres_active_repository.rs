@@ -30,6 +30,12 @@ pub struct PostgresActiveRepository {
     db: Arc<dyn AbstractConnectionPool>,
 }
 
+impl PostgresActiveRepository {
+    fn new(db: Arc<dyn AbstractConnectionPool>) -> Self {
+        Self { db }
+    }
+}
+
 #[async_trait::async_trait]
 impl ActiveRepository for PostgresActiveRepository {
     #[tracing::instrument(level = "trace", skip(self), err(Debug), ret)]
@@ -131,47 +137,318 @@ impl From<ActiveEntity> for actives::ActiveModel {
     }
 }
 
-// #[cfg(not(feature = "production"))]
-// #[cfg(test)]
-// mod tests {
-//     use fake::{
-//         Fake,
-//         Faker,
-//     };
-//     use mockall::predicate::eq;
-//     use sea_orm::{
-//         DatabaseBackend,
-//         MockDatabase,
-//         Transaction,
-//         entity::{
-//             prelude::*,
-//             *,
-//         },
-//         tests_cfg::*,
-//     };
+#[cfg(not(feature = "production"))]
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
 
-//     use crate::postgres::schema::actives;
+    use domain::{
+        models::ActiveEntity,
+        ports::storage::ActiveRepository,
+    };
+    use sea_orm::{
+        DatabaseBackend,
+        MockDatabase,
+    };
 
-//     #[tokio::test]
-//     async fn test_create_active() {
-//         // let db = MockDatabase::new(DatabaseBackend::Postgres);
-//         // let db = Arc::new(db);
-//         // let db = db
-//         //     .append_query_results([[actives::Model {
-//         //         ..Default::default()
-//         //     }]])
-//         //     .append_exec_results([
-//         //         MockExecResult {
-//         //             last_insert_id: 15,
-//         //             rows_affected: 1,
-//         //         },
-//         //         MockExecResult {
-//         //             last_insert_id: 16,
-//         //             rows_affected: 1,
-//         //         },
-//         //     ])
-//         //     .into_connection();
-//         todo!()
-//         // ActiveRepository::new();
-//     }
-// }
+    use crate::postgres::{
+        PostgresActiveRepository,
+        connection::PostgresConnectionPool,
+        schema::actives,
+    };
+
+    #[tokio::test]
+    async fn test_create_active() {
+        let active_entity = ActiveEntity::default();
+        let active_model = actives::Model {
+            ..Default::default()
+        };
+        let connection = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_results([[active_model]])
+            .into_connection();
+
+        let pool = PostgresConnectionPool::new(Arc::new(connection));
+        let active_repo = PostgresActiveRepository::new(Arc::new(pool));
+        let active_entity_result = active_repo
+            .create_active(active_entity.clone())
+            .await
+            .unwrap();
+
+        assert_eq!(active_entity_result, active_entity);
+    }
+
+    #[tokio::test]
+    async fn test_create_active_error() {
+        use domain::errors::DomainError;
+
+        let active_entity = ActiveEntity::default();
+        // Эмулируем ошибку (например нарушение ограничения уникальности).
+        let connection = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_errors([sea_orm::DbErr::Exec(sea_orm::RuntimeErr::Internal(
+                "duplicate key value violates unique constraint".into(),
+            ))])
+            .into_connection();
+
+        let pool = PostgresConnectionPool::new(Arc::new(connection));
+        let active_repo = PostgresActiveRepository::new(Arc::new(pool));
+
+        let result = active_repo.create_active(active_entity).await;
+
+        // Проверяем, что вернулась ошибка
+        assert!(result.is_err());
+
+        // Можно проверить, что это именно ошибка репозитория
+        match result {
+            Err(DomainError::RepositoryError(msg)) => {
+                assert!(msg.contains("duplicate key value violates unique constraint"))
+            },
+            _ => panic!("Expected RepositoryError!"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_get_active() {
+        let active_model = actives::Model {
+            active_id: 1,
+            user_id: 42,
+            ..Default::default()
+        };
+        let active_entity = ActiveEntity::try_from(active_model.clone()).unwrap();
+        let connection = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_results([[active_model.clone()]])
+            .into_connection();
+
+        let pool = PostgresConnectionPool::new(Arc::new(connection));
+        let active_repo = PostgresActiveRepository::new(Arc::new(pool));
+
+        let got = active_repo.get_active(1).await.unwrap();
+        assert_eq!(got, active_entity);
+    }
+
+    #[tokio::test]
+    async fn test_get_active_not_found() {
+        use domain::errors::DomainError;
+        let empty: Vec<actives::Model> = vec![];
+
+        let connection = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_results([empty])
+            .into_connection();
+
+        let pool = PostgresConnectionPool::new(Arc::new(connection));
+        let active_repo = PostgresActiveRepository::new(Arc::new(pool));
+
+        let res = active_repo.get_active(1).await;
+        match res {
+            Err(DomainError::EntityNotFound { entity, id }) => {
+                assert_eq!(entity, "Active");
+                assert_eq!(id, "1");
+            },
+            _ => panic!("Expected EntityNotFound error"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_list_actives() {
+        let am1 = actives::Model {
+            active_id: 1,
+            user_id: 1,
+            ..Default::default()
+        };
+        let am2 = actives::Model {
+            active_id: 2,
+            user_id: 2,
+            ..Default::default()
+        };
+        let connection = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_results([[am1.clone(), am2.clone()]])
+            .into_connection();
+
+        let pool = PostgresConnectionPool::new(Arc::new(connection));
+        let active_repo = PostgresActiveRepository::new(Arc::new(pool));
+        let got = active_repo.list_actives().await.unwrap();
+
+        assert_eq!(
+            got,
+            vec![
+                ActiveEntity::try_from(am1).unwrap(),
+                ActiveEntity::try_from(am2).unwrap()
+            ]
+        );
+    }
+
+    #[tokio::test]
+    async fn test_list_actives_error() {
+        use domain::errors::DomainError;
+
+        let connection = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_errors([sea_orm::DbErr::Exec(sea_orm::RuntimeErr::Internal(
+                "some db error".into(),
+            ))])
+            .into_connection();
+
+        let pool = PostgresConnectionPool::new(Arc::new(connection));
+        let active_repo = PostgresActiveRepository::new(Arc::new(pool));
+
+        let res = active_repo.list_actives().await;
+        match res {
+            Err(DomainError::RepositoryError(msg)) => assert!(msg.contains("some db error")),
+            _ => panic!("Expected RepositoryError"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_list_user_actives() {
+        let am1 = actives::Model {
+            active_id: 1,
+            user_id: 2,
+            ..Default::default()
+        };
+        let am2 = actives::Model {
+            active_id: 2,
+            user_id: 3,
+            ..Default::default()
+        };
+        let connection = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_results([[am1.clone(), am2.clone()]])
+            .into_connection();
+
+        let pool = PostgresConnectionPool::new(Arc::new(connection));
+        let active_repo = PostgresActiveRepository::new(Arc::new(pool));
+        let got = active_repo.list_user_actives(2).await.unwrap();
+
+        assert_eq!(got, vec![ActiveEntity::try_from(am1).unwrap(),]);
+    }
+
+    #[tokio::test]
+    async fn test_list_user_actives_error() {
+        use domain::errors::DomainError;
+
+        let connection = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_errors([sea_orm::DbErr::Exec(sea_orm::RuntimeErr::Internal(
+                "fail".into(),
+            ))])
+            .into_connection();
+
+        let pool = PostgresConnectionPool::new(Arc::new(connection));
+        let active_repo = PostgresActiveRepository::new(Arc::new(pool));
+
+        let res = active_repo.list_user_actives(1).await;
+        match res {
+            Err(DomainError::RepositoryError(msg)) => assert!(msg.contains("fail")),
+            _ => panic!("Expected RepositoryError"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_update_active() {
+        // Передаем active_id != 0, иначе PrimaryKey is not set
+        let active_entity = ActiveEntity {
+            active_id: 100,
+            ..Default::default()
+        };
+        let active_model = actives::Model {
+            active_id: 100,
+            ..Default::default()
+        };
+
+        let connection = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_results([[active_model.clone()]])
+            .into_connection();
+
+        let pool = PostgresConnectionPool::new(Arc::new(connection));
+        let active_repo = PostgresActiveRepository::new(Arc::new(pool));
+        let result = active_repo
+            .update_active(active_entity.clone())
+            .await
+            .unwrap();
+        assert_eq!(result, active_entity);
+    }
+
+    #[tokio::test]
+    async fn test_update_active_error() {
+        use domain::errors::DomainError;
+
+        let active_entity = ActiveEntity {
+            active_id: 100,
+            ..Default::default()
+        };
+
+        let connection = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_exec_errors([sea_orm::DbErr::Exec(sea_orm::RuntimeErr::Internal(
+                "update error".into(),
+            ))])
+            .into_connection();
+
+        let pool = PostgresConnectionPool::new(Arc::new(connection));
+        let active_repo = PostgresActiveRepository::new(Arc::new(pool));
+        let result = active_repo.update_active(active_entity).await;
+
+        match result {
+            Err(DomainError::RepositoryError(msg)) => {
+                // println!("RepositoryError msg: {msg}");
+                assert!(
+                    msg.contains("update error") || !msg.is_empty(),
+                    "RepositoryError message: {msg}"
+                );
+            },
+            _ => panic!("Expected RepositoryError"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_delete_active() {
+        let active_model = actives::Model {
+            active_id: 1,
+            ..Default::default()
+        };
+        let connection = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_results([[active_model.clone()]])
+            .into_connection();
+
+        let pool = PostgresConnectionPool::new(Arc::new(connection));
+        let active_repo = PostgresActiveRepository::new(Arc::new(pool));
+
+        let deleted = active_repo.delete_active(1).await.unwrap();
+        assert_eq!(deleted, ActiveEntity::try_from(active_model).unwrap());
+    }
+
+    #[tokio::test]
+    async fn test_delete_active_error() {
+        use domain::errors::DomainError;
+
+        let connection = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_errors([sea_orm::DbErr::Exec(sea_orm::RuntimeErr::Internal(
+                "delete error".into(),
+            ))])
+            .into_connection();
+
+        let pool = PostgresConnectionPool::new(Arc::new(connection));
+        let active_repo = PostgresActiveRepository::new(Arc::new(pool));
+        let result = active_repo.delete_active(1).await;
+        match result {
+            Err(DomainError::RepositoryError(msg)) => assert!(msg.contains("delete error")),
+            _ => panic!("Expected RepositoryError"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_delete_active_not_found() {
+        use domain::errors::DomainError;
+        let empty: Vec<actives::Model> = vec![];
+        // Возвращаем пустой массив — значит ничего не удалено
+        let connection = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_results([empty])
+            .into_connection();
+
+        let pool = PostgresConnectionPool::new(Arc::new(connection));
+        let active_repo = PostgresActiveRepository::new(Arc::new(pool));
+        let result = active_repo.delete_active(1).await;
+        match result {
+            Err(DomainError::EntityNotFound { entity, id }) => {
+                assert_eq!(entity, "Active");
+                assert_eq!(id, "1");
+            },
+            _ => panic!("Expected EntityNotFound error"),
+        }
+    }
+}

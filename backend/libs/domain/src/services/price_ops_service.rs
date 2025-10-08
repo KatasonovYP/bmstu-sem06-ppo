@@ -243,4 +243,58 @@ mod tests {
 
         assert_eq!(result, expected_price);
     }
+
+    #[tokio::test]
+async fn should_call_get_trades_for_each_active_london_style() {
+    // arrange
+    use crate::ports::exchange::MockExchangeRepository;
+
+    use mockall::Sequence;
+    use mockall::predicate::eq;
+
+    // Два актива с разными security_id
+    let apple_active = ActiveEntity {
+        security_id: "AAPL".to_string(),
+        count: 1,
+        bought_price: Price::rub(0.),
+        ..Faker.fake()
+    };
+    let msft_active = ActiveEntity {
+        security_id: "MSFT".to_string(),
+        count: 1,
+        bought_price: Price::rub(0.),
+        ..Faker.fake()
+    };
+
+    let apple_trade = TradeEntity { price: 100., ..Faker.fake() };
+    let msft_trade = TradeEntity { price: 200., ..Faker.fake() };
+
+    let mut seq = Sequence::new();
+
+    let mut mock_repo = MockExchangeRepository::new();
+
+    mock_repo
+        .expect_get_trades()
+        .with(eq("AAPL".to_string()))
+        .times(1)
+        .in_sequence(&mut seq)
+        .return_once(move |_| Ok(vec![apple_trade.clone()]));
+
+    mock_repo
+        .expect_get_trades()
+        .with(eq("MSFT".to_string()))
+        .times(1)
+        .in_sequence(&mut seq)
+        .return_once(move |_| Ok(vec![msft_trade.clone()]));
+
+    let service = PriceOpsService::new(Arc::new(mock_repo));
+
+    // act
+    let _ = service
+        .get_actives_current_price(vec![apple_active.clone(), msft_active.clone()])
+        .await
+        .unwrap();
+
+}
+
 }

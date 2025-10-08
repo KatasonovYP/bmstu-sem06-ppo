@@ -1,6 +1,7 @@
 use std::net::SocketAddr;
 
 use adapters::{
+    di_domain_module::di_domain_module,
     postgres::schema::*,
     settings::Settings,
 };
@@ -23,10 +24,10 @@ use axum::{
     },
     routing::{
         get,
-        get_service,
         post,
     },
 };
+use axum_static_s3::S3OriginBuilder;
 use http::HeaderMap;
 use sea_orm::{
     Database,
@@ -49,10 +50,6 @@ use seaography::{
     lazy_static,
 };
 use tera::Tera;
-use tower_http::services::{
-    ServeDir,
-    ServeFile,
-};
 
 #[derive(Clone)]
 struct AppState {
@@ -174,9 +171,39 @@ async fn graphql_handler(
     Ok(res)
 }
 
+use aws_config::{
+    Region,
+    SdkConfig as AwsSdkConfig,
+};
+use tower_http::services::{
+    ServeDir,
+    ServeFile,
+};
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let settings = Settings::new().unwrap();
+    di_domain_module(settings.clone()).await;
+
+    let s3_config = AwsSdkConfig::builder()
+        .endpoint_url("https://storage.yandexcloud.net".to_string())
+        .region(Region::new("ru-central1".to_string()))
+        .build();
+
+    let s3_origin = S3OriginBuilder::new()
+        .config(s3_config.clone())
+        .bucket("static.admin.stocks-tracker.ru")
+        .build()
+        .expect("Failed to build S3 origin");
+
+    let s3_origin_home = S3OriginBuilder::new()
+        .config(s3_config)
+        .bucket("static.admin.stocks-tracker.ru")
+        .prefix("admin/index.html")
+        .prune_path(1)
+        .build()
+        .expect("Failed to build S3 origin");
+
     let conn = Database::connect(settings.postgres_connection_string)
         .await
         .expect("Database connection failed");
@@ -185,24 +212,20 @@ async fn main() -> anyhow::Result<()> {
     let templates = Tera::new(concat!(env!("CARGO_MANIFEST_DIR"), "/templates/**/*"))
         .expect("Tera initialization failed");
     let state = AppState { templates, conn };
-    let app = Router::new()
+    let mut app = Router::new()
         .route("/api/admin/config", get(admin_panel_config))
         .route("/api/auth/login", post(user_login))
         .route("/api/user/current", get(current_user))
         .route("/api/graphql", get(graphql_playground))
-        .route("/api/graphql", post(graphql_handler))
-        .nest_service(
-            "/admin",
-            get_service(
-                ServeDir::new(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/admin")).fallback(
-                    ServeFile::new(concat!(
-                        env!("CARGO_MANIFEST_DIR"),
-                        "/assets/admin/index.html"
-                    )),
-                ),
-            ),
-        )
-        .with_state(state);
+        .route("/api/graphql", post(graphql_handler));
+
+    if settings.local_admin {
+        app = app
+            .route_service("/admin", s3_origin_home.clone())
+            .route_service("/admin/{*path}", s3_origin.clone());
+    }
+
+    let app = app.with_state(state);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], settings.api_server_port));
 

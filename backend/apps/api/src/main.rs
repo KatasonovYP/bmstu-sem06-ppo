@@ -45,6 +45,31 @@ use utoipa::{
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_swagger_ui::SwaggerUi;
 
+#[derive(utoipa::OpenApi)]
+#[openapi(
+        modifiers(&SecurityAddon),
+        tags(
+            (name = "active", description = "CRUD операции над активами пользователя"),
+            (name = "notification", description = "CRUD операции над нотификациями пользователя"),
+            (name = "user", description = "CRUD операции над пользователями"),
+            (name = "auth", description = "Операции, связанные с авторизацией и аутентификацией"),
+        )
+    )]
+struct ApiDoc;
+
+struct SecurityAddon;
+
+impl Modify for SecurityAddon {
+    fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+        if let Some(components) = openapi.components.as_mut() {
+            components.add_security_scheme(
+                "Authorization",
+                SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::new("Authorization"))),
+            )
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() {
     let settings = Settings::new().unwrap();
@@ -56,30 +81,6 @@ async fn main() {
     let active_controller = ApiActiveController::new(module.resolve());
     let notification_controller = ApiNotificationController::new(module.resolve());
 
-    #[derive(utoipa::OpenApi)]
-    #[openapi(
-        modifiers(&SecurityAddon),
-        tags(
-            (name = "active", description = "CRUD операции над активами пользователя"),
-            (name = "notification", description = "CRUD операции над нотификациями пользователя"),
-            (name = "user", description = "CRUD операции над пользователями"),
-            (name = "auth", description = "Операции, связанные с авторизацией и аутентификацией"),
-        )
-    )]
-    struct ApiDoc;
-
-    struct SecurityAddon;
-
-    impl Modify for SecurityAddon {
-        fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
-            if let Some(components) = openapi.components.as_mut() {
-                components.add_security_scheme(
-                    "Authorization",
-                    SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::new("Authorization"))),
-                )
-            }
-        }
-    }
     let jwt_auth = Arc::new(JwtAuth::new(jwt_token.clone()));
     let protected_router = OpenApiRouter::new()
         .nest("/actives", active_controller.router())

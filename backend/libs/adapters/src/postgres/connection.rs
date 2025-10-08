@@ -26,6 +26,10 @@ pub struct PostgresConnectionPool {
 }
 
 impl PostgresConnectionPool {
+    pub fn new(connection: Arc<DatabaseConnection>) -> Self {
+        Self { connection }
+    }
+
     pub async fn new_connection_pool(
         connection_string: String,
     ) -> Result<Arc<DatabaseConnection>, sea_orm::DbErr> {

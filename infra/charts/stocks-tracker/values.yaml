@@ -20,6 +20,14 @@ ingress:
     enabled: false
     average: 100
     burst: 50
+  admin:
+    host: admin.stocks-tracker.ru
+    path: /
+    tls:
+      enabled: false
+      redirectHttp: false
+
+
 
 port: 3000
 
@@ -34,11 +42,11 @@ rollingUpdate:
 
 resources:
   limits:
-    cpu: 1000m
-    memory: 1Gi
+    cpu: 500m
+    memory: 512Mi
   requests:
-    cpu: 1000m
-    memory: 1Gi
+    cpu: 500m
+    memory: 512Mi
 
 # Add these sections to your existing values.yaml
 redis:
