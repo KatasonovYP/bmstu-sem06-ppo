@@ -15,15 +15,15 @@ spec:
   ingressClassName: traefik
   tls:
   - hosts:
-    - {{ .Values.ingress.host }}
+    - {{ .Values.ingress.api.host }}
     - {{ .Values.ingress.admin.host }}
     secretName: {{ .Values.meta.name }}-tls-cert
   rules:
-    - host: {{ .Values.ingress.host }}
+    - host: {{ .Values.ingress.api.host }}
       http:
         paths:
           - pathType: Prefix
-            path: {{ .Values.ingress.path }}
+            path: {{ .Values.ingress.api.path }}
             backend:
               service:
                 name: {{ .Values.meta.name }}-api-service
