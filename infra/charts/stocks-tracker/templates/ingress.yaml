@@ -16,6 +16,7 @@ spec:
   tls:
   - hosts:
     - {{ .Values.ingress.host }}
+    - {{ .Values.ingress.admin.host }}
     secretName: {{ .Values.meta.name }}-tls-cert
   rules:
     - host: {{ .Values.ingress.host }}

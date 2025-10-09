@@ -8,18 +8,19 @@ image:
   command: ["./app"]
 
 ingress:
-  host: api.stocks-tracker.ru
-  path: /
-  tls:
-    enabled: false
-    redirectHttp: false
-    # secretName: custom-tls-cert # Optional: specify if you have a pre-created TLS secret
-  timeouts:
-    request: 30s
-  rateLimit:
-    enabled: false
-    average: 100
-    burst: 50
+  api:
+    host: api.stocks-tracker.ru
+    path: /
+    tls:
+      enabled: false
+      redirectHttp: false
+      # secretName: custom-tls-cert # Optional: specify if you have a pre-created TLS secret
+    timeouts:
+      request: 30s
+    rateLimit:
+      enabled: false
+      average: 100
+      burst: 50
   admin:
     host: admin.stocks-tracker.ru
     path: /

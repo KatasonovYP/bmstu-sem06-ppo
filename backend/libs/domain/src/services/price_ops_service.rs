@@ -61,24 +61,27 @@ impl AbstractPriceOpsService for PriceOpsService {
         Ok(total)
     }
 
-    #[tracing::instrument(skip(self), err(Debug), ret)]
-    async fn get_active_current_price(&self, active: &ActiveEntity) -> Result<Price, DomainError> {
+    async fn get_security_current_price(&self, security_id: &String) -> Result<Price, DomainError> {
         let trades = self
             .exchange_repository
-            .get_trades(active.security_id.clone())
+            .get_trades(security_id.clone())
             .await?;
 
-        let current_unit_price = trades
+        let security_current_price = trades
             .first()
             .ok_or(DomainError::EntityNotFound {
                 entity: "security".into(),
-                id: active.security_id.clone(),
+                id: security_id.clone(),
             })?
             .price;
+        Ok(Price::rub(security_current_price))
+    }
 
-        let total_value = current_unit_price * active.count as f64;
-
-        Ok(Price::rub(total_value))
+    #[tracing::instrument(skip(self), err(Debug), ret)]
+    async fn get_active_current_price(&self, active: &ActiveEntity) -> Result<Price, DomainError> {
+        let security_current_price = self.get_security_current_price(&active.security_id).await?;
+        let active_current_price = security_current_price * active.count;
+        Ok(active_current_price)
     }
 
     #[tracing::instrument(skip(self), err(Debug), ret)]
@@ -245,56 +248,62 @@ mod tests {
     }
 
     #[tokio::test]
-async fn should_call_get_trades_for_each_active_london_style() {
-    // arrange
-    use crate::ports::exchange::MockExchangeRepository;
+    async fn should_call_get_trades_for_each_active_london_style() {
+        // arrange
+        use mockall::{
+            Sequence,
+            predicate::eq,
+        };
 
-    use mockall::Sequence;
-    use mockall::predicate::eq;
+        use crate::ports::exchange::MockExchangeRepository;
 
-    // Два актива с разными security_id
-    let apple_active = ActiveEntity {
-        security_id: "AAPL".to_string(),
-        count: 1,
-        bought_price: Price::rub(0.),
-        ..Faker.fake()
-    };
-    let msft_active = ActiveEntity {
-        security_id: "MSFT".to_string(),
-        count: 1,
-        bought_price: Price::rub(0.),
-        ..Faker.fake()
-    };
+        // Два актива с разными security_id
+        let apple_active = ActiveEntity {
+            security_id: "AAPL".to_string(),
+            count: 1,
+            bought_price: Price::rub(0.),
+            ..Faker.fake()
+        };
+        let msft_active = ActiveEntity {
+            security_id: "MSFT".to_string(),
+            count: 1,
+            bought_price: Price::rub(0.),
+            ..Faker.fake()
+        };
 
-    let apple_trade = TradeEntity { price: 100., ..Faker.fake() };
-    let msft_trade = TradeEntity { price: 200., ..Faker.fake() };
+        let apple_trade = TradeEntity {
+            price: 100.,
+            ..Faker.fake()
+        };
+        let msft_trade = TradeEntity {
+            price: 200.,
+            ..Faker.fake()
+        };
 
-    let mut seq = Sequence::new();
+        let mut seq = Sequence::new();
 
-    let mut mock_repo = MockExchangeRepository::new();
+        let mut mock_repo = MockExchangeRepository::new();
 
-    mock_repo
-        .expect_get_trades()
-        .with(eq("AAPL".to_string()))
-        .times(1)
-        .in_sequence(&mut seq)
-        .return_once(move |_| Ok(vec![apple_trade.clone()]));
+        mock_repo
+            .expect_get_trades()
+            .with(eq("AAPL".to_string()))
+            .times(1)
+            .in_sequence(&mut seq)
+            .return_once(move |_| Ok(vec![apple_trade.clone()]));
 
-    mock_repo
-        .expect_get_trades()
-        .with(eq("MSFT".to_string()))
-        .times(1)
-        .in_sequence(&mut seq)
-        .return_once(move |_| Ok(vec![msft_trade.clone()]));
+        mock_repo
+            .expect_get_trades()
+            .with(eq("MSFT".to_string()))
+            .times(1)
+            .in_sequence(&mut seq)
+            .return_once(move |_| Ok(vec![msft_trade.clone()]));
 
-    let service = PriceOpsService::new(Arc::new(mock_repo));
+        let service = PriceOpsService::new(Arc::new(mock_repo));
 
-    // act
-    let _ = service
-        .get_actives_current_price(vec![apple_active.clone(), msft_active.clone()])
-        .await
-        .unwrap();
-
-}
-
+        // act
+        let _ = service
+            .get_actives_current_price(vec![apple_active.clone(), msft_active.clone()])
+            .await
+            .unwrap();
+    }
 }
