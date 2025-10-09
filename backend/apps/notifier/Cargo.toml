@@ -9,6 +9,6 @@ domain = { path = "../../libs/domain" }
 adapters = { path = "../../libs/adapters" }
 
 # other
-tokio = { version = "1.29.1", features = ["full"] }
-shaku = "0.6.2"
-tracing = { version = "0.1", features = ["attributes"] }
+tokio = { workspace = true, features = ["full"] }
+shaku = { workspace = true }
+tracing = { workspace = true, features = ["attributes"] }

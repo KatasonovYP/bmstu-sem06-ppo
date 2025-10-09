@@ -9,72 +9,69 @@ domain = { path = "../../libs/domain" }
 adapters = { path = "../../libs/adapters" }
 
 # Web and networking
-axum = { version = "0.8.1", features = ["tokio", "http1", "tracing"] }
-axum-macros = "0.5.0"
-async-graphql-axum = { version = "7.0" }
-sea-orm-pro = { version = "0.1.0" }
-tower-http = { version = "0.6", features = [
+axum = { workspace = true, features = ["tokio", "http1", "tracing"] }
+axum-macros = { workspace = true }
+async-graphql-axum = { workspace = true }
+sea-orm-pro = { workspace = true }
+tower-http = { workspace = true, features = [
     "cors",
     "normalize-path",
     "request-id",
     "trace",
     "fs",
 ] }
-http = "1.3.1"
-http-body-util = "0.1.3"
-bytes = "1.10.1"
-tower-layer = "0.3.3"
-utoipa = { version = "5.3.1", features = ["axum_extras"] }
-utoipa-axum = "0.2.0"
-utoipa-swagger-ui = { version = "9", features = ["axum"] }
+http = { workspace = true }
+http-body-util = { workspace = true }
+bytes = { workspace = true }
+tower-layer = { workspace = true }
+utoipa = { workspace = true, features = ["axum_extras"] }
+utoipa-axum = { workspace = true }
+utoipa-swagger-ui = { workspace = true, features = ["axum"] }
 
 # db
-tera = "1.19.1"
-sea-orm = { version = "1.1.8", features = [
+tera = { workspace = true }
+sea-orm = { workspace = true, features = [
     "sqlx-postgres",
     "runtime-tokio-rustls",
     "macros",
     "mock",
 ] }
-seaography = { version = "1.1.1", features = [
+seaography = { workspace = true, features = [
     "with-decimal",
     "with-chrono",
     "with-uuid",
     "field-snake-case",
 ] }
-axum-static-s3 = "0.1.2"
-aws-config = { version = "1.1.7", features = ["behavior-version-latest"] }
-aws-sdk-s3 = { version = "1.108.0", features = ["behavior-version-latest"] }
+axum-static-s3 = { workspace = true }
+aws-config = { workspace = true, features = ["behavior-version-latest"] }
+aws-sdk-s3 = { workspace = true, features = ["behavior-version-latest"] }
 
 # Async and runtime
-tokio = { version = "1.29.1", features = ["full"] }
-async-trait = "0.1.88"
+tokio = { workspace = true, features = ["full"] }
+async-trait = { workspace = true }
 
 # Serialization
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
 
 # Utilities
-uuid = { version = "1.16", features = ["v4"] }
-chrono = "0.4"
-dotenvy = "0.15.7"
-shaku = "0.6.2"
+uuid = { workspace = true, features = ["v4"] }
+chrono = { workspace = true }
+dotenvy = { workspace = true }
+shaku = { workspace = true }
 
 # Error handling
-thiserror = "2.0"
-anyhow = "1.0"
+thiserror = { workspace = true }
+anyhow = { workspace = true }
 
 # Logging and tracing
-log = "0.4.26"
-tracing = { version = "0.1", features = ["attributes"] }
+log = { workspace = true }
+tracing = { workspace = true, features = ["attributes"] }
 
 # Telegram
-telegram-authorizer = "0.3.0"
+telegram-authorizer = { workspace = true }
 
 # Testing and mocking (required in main code for interfaces)
-mockall = { version = "0.13.1", optional = true }
-fake = { version = "4.3", features = ["chrono", "derive"], optional = true }
-jsonwebtoken = "9.3.1"
-
-[patch.crates-io]
-sea-orm = { git = 'https://github.com/KatasonovYP/sea-orm.git', branch = 'fix/seaography-mock' }
+mockall = { workspace = true, optional = true }
+fake = { workspace = true, features = ["chrono", "derive"], optional = true }
+jsonwebtoken = { workspace = true }

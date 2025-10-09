@@ -31,6 +31,7 @@ pub struct PostgresActiveRepository {
 }
 
 impl PostgresActiveRepository {
+    #[allow(dead_code)]
     fn new(db: Arc<dyn AbstractConnectionPool>) -> Self {
         Self { db }
     }

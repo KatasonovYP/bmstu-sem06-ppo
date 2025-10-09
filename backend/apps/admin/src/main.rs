@@ -24,7 +24,6 @@ use axum::{
     },
     routing::{
         get,
-        get_service,
         post,
     },
 };
@@ -50,11 +49,10 @@ use seaography::{
     },
     lazy_static,
 };
-use tera::Tera;
 
 #[derive(Clone)]
 struct AppState {
-    templates: Tera,
+    // templates: Tera,
     connection: DatabaseConnection,
 }
 
@@ -79,7 +77,7 @@ async fn graphql_playground() -> impl IntoResponse {
 
 const DEMO_USER: &str = "demo@sea-ql.org";
 const DEMO_USER_PID: &str = "79a6243b-088d-5d95-9b16-a2d1689e291f";
-const DEMO_USER_TOKEN: &str = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJwaWQiOiI2MjRhOWMxZi1hMTQ5LTQ0Y2MtYjBhMy03OTMzNDViZTlkOTMiLCJleHAiOjE3MzY4NDc1OTcsImNsYWltcyI6bnVsbH0.w2dJzWUw343eAt_sWrngb065uwJK-SOgJ8gDBls7XHSKILNKGzh-ZG9VFEBwVl4356-vD1MM8Qo8Y2TcO5V-NA";
+const DEMO_USER_TOKEN: &str = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJwaWQiOiI2MjRhOWMxZi1hMTQ5LTQ0Y2MtYjBhM03OTMzNDViZTlkOyTMiLCJleHAiOjE3MzY4NDc1OTcsImNsYWltcyI6bnVsbH0.w2dJzWUw343eAt_sWrngb065uwJK-SOgJ8gDBls7XHSKILNKGzh-ZG9VFEBwVl4356-vD1MM8Qo8Y2TcO5V-NA";
 
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct PasswordLoginParams {
@@ -176,10 +174,6 @@ use aws_config::{
     Region,
     SdkConfig as AwsSdkConfig,
 };
-use tower_http::services::{
-    ServeDir,
-    ServeFile,
-};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -209,38 +203,21 @@ async fn main() -> anyhow::Result<()> {
         .await
         .expect("Database connection failed");
 
-    let templates = Tera::new(concat!(env!("CARGO_MANIFEST_DIR"), "/templates/**/*"))
-        .expect("Tera initialization failed");
+    // let templates = Tera::new(concat!(env!("CARGO_MANIFEST_DIR"), "/templates/**/*"))
+    // .expect("Tera initialization failed");
     let state = AppState {
-        templates,
+        // templates,
         connection,
     };
-    let mut app = Router::new()
+    let app = Router::new()
         .route("/api/admin/config", get(admin_panel_config))
         .route("/api/auth/login", post(user_login))
         .route("/api/user/current", get(current_user))
         .route("/api/graphql", get(graphql_playground))
-        .route("/api/graphql", post(graphql_handler));
-
-    if settings.local_admin {
-        // app = app
-        //     .route_service("/admin", s3_origin_home.clone())
-        //     .route_service("/admin/{*path}", s3_origin.clone());
-        app = app.nest_service(
-            "/admin",
-            get_service(
-                ServeDir::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../../target/assets/admin")).fallback(
-                    ServeFile::new(concat!(
-                        env!("CARGO_MANIFEST_DIR"),
-                        "/../../target/assets/admin/index.html"
-                    )),
-                ),
-            ),
-        )
-        ;
-    }
-
-    let app = app.with_state(state);
+        .route("/api/graphql", post(graphql_handler))
+        .route_service("/admin", s3_origin_home.clone())
+        .route_service("/admin/{*path}", s3_origin.clone())
+        .with_state(state);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], settings.api_server_port));
 
