@@ -203,10 +203,7 @@ async fn main() -> anyhow::Result<()> {
         .await
         .expect("Database connection failed");
 
-    // let templates = Tera::new(concat!(env!("CARGO_MANIFEST_DIR"), "/templates/**/*"))
-    // .expect("Tera initialization failed");
     let state = AppState {
-        // templates,
         connection,
     };
     let app = Router::new()

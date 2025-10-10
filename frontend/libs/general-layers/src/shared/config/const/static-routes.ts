@@ -4,5 +4,6 @@ export const staticRoutes = {
     active: '/active/:activeId',
     notification: '/notification/:notificationId',
     settings: '/settings',
+    docs: '/docs',
     // protected routes
 } as const;

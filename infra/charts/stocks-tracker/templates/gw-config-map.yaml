@@ -1,0 +1,91 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.meta.name }}-gw-config
+  namespace: {{ .Values.meta.namespace }}
+data:
+  default.conf: |
+    server {
+        listen 80;
+        server_name localhost;
+
+        location /reserved/ {
+            alias /usr/share/nginx/html/;
+            index index.html index.htm;
+            add_header Content-Type text/html;
+        }
+
+        location / {
+            alias /usr/share/nginx/html/;
+            index index.html index.htm;
+            add_header Content-Type text/html;
+        }
+
+        location /management/ {
+            alias /usr/share/nginx/html/;
+            index management.html management.htm;
+            add_header Content-Type text/html;
+        }
+
+        location /legacy/ {
+            proxy_pass https://stocks-tracker.ru/;
+            proxy_set_header Host stocks-tracker.ru;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+
+        location /status/nginx/ {
+            stub_status;
+        }
+    }
+  index.html: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Welcome to Stocks Tracker</title>
+    </head>
+    <body>
+        <h1>Welcome to Stocks Tracker!</h1>
+    </body>
+    </html>
+  management.html: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Welcome to Stocks Tracker</title>
+    </head>
+    <body>
+        <h1>Welcome to management!</h1>
+        <p>
+        <a href="https://api.stocks-tracker.ru/swagger">https://api.stocks-tracker.ru/swagger</a>
+        </p>
+        <p>
+        <a href="https://gw.stocks-tracker.ru/legacy">https://gw.stocks-tracker.ru/legacy/</a>
+        </p>
+        <p>
+        <a href="https://gw.stocks-tracker.ru/documentation/">https://gw.stocks-tracker.ru/documentation/</a>
+        </p>
+        <p>
+        <a href="https://stocks-tracker.ru/">https://stocks-tracker.ru/</a>
+        </p>
+        <p>
+        <a href="https://gw.stocks-tracker.ru/">https://gw.stocks-tracker.ru/</a>
+        </p>
+        <p>
+        <a href="https://gw.stocks-tracker.ru/reserved/">https://gw.stocks-tracker.ru/reserved/</a>
+        </p>
+        <p>
+        <a href="https://admin.stocks-tracker.ru/admin/">https://admin.stocks-tracker.ru/admin/</a>
+        </p>
+        <p>
+        <a href="https://gw.stocks-tracker.ru/status/nginx/">https://gw.stocks-tracker.ru/status/nginx/</a>
+        </p>
+        <p>
+        <a href="https://gw.stocks-tracker.ru/management/">https://gw.stocks-tracker.ru/management/</a>
+        </p>
+    </body>
+    </html>
