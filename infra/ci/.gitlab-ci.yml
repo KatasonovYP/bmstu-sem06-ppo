@@ -10,32 +10,43 @@ stages:
   - test
   - deploy-testing
   - test-e2e
+  - allure-report
   - deploy-production
 
-job-build-push-builder-image:
+.aws-env: &aws-env
+  AWS_DEFAULT_REGION: ru-central1
+  AWS_ENDPOINT_URL: https://storage.yandexcloud.net
+  S3_BUCKET: allure.stocks-tracker.ru
+
+job-build-push-ci-images:
   stage: prepare
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
   dependencies: []
   cache: []
+  parallel:
+    matrix:
+      - DOCKERFILE:
+        - builder
+        - reporter
   script:
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"${CI_REGISTRY}\":{\"auth\":\"$(echo -n "json_key:${CI_REGISTRY_KEY}" | base64 | tr -d '\n' )\"}}}" > /kaniko/.docker/config.json
     - >-
       /kaniko/executor
       --context "${CI_PROJECT_DIR}"
-      --dockerfile "${CI_PROJECT_DIR}/infra/ci/builder.Dockerfile"
-      --destination "${CI_REGISTRY}/${CI_PROJECT_PATH}/backend-builder:latest"
+      --dockerfile "${CI_PROJECT_DIR}/infra/ci/$DOCKERFILE.Dockerfile"
+      --destination "${CI_REGISTRY}/${CI_PROJECT_PATH}/$DOCKERFILE:latest"
   only:
     changes:
-      - infra/ci/*
+      - ./infra/ci/*.Dockerfile
 
 job-build-backend:
   stage: build
   image: cr.yandex/crpav8o4hj057l1dbgqa/the-qsb/stocks-tracker/backend-builder:latest
   needs:
-    - job: job-build-push-builder-image
+    - job: job-build-push-ci-images
       optional: true
   dependencies: []
   variables:
@@ -213,10 +224,31 @@ job-test-e2e:
     reports:
       junit: ./backend/allure-results/e2e.xml
 
+job-allure-report:
+  stage: allure-report
+  when: always
+  variables:
+    <<: *aws-env
+  needs:
+    - job-test-unit
+    - job-test-integration
+    - job-test-e2e
+  cache: []
+  image: cr.yandex/crpav8o4hj057l1dbgqa/the-qsb/stocks-tracker/reporter:latest
+  script:
+    - aws s3 sync s3://$S3_BUCKET/$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME/history ./backend/allure-results/history
+    - allure generate -c ./backend/allure-results -o ./backend/allure-report
+    - aws s3 sync ./backend/allure-report s3://$S3_BUCKET/$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME
+    - echo "https://$S3_BUCKET/$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME"
+  artifacts:
+    paths:
+      - ./backend/allure-report
+
 job-build-frontend:
   stage: build
   when: on_success
   variables:
+    API: https://api.stocks-tracker.ru
     ENVIRONMENT_NAME: "testing"
   environment: $ENVIRONMENT_NAME
   image: node:23.11.0-slim
@@ -243,8 +275,7 @@ job-deploy-frontend:
     - job-build-frontend
     - job-test-integration
   variables:
-    ENVIRONMENT_NAME: "testing"
-  environment: $ENVIRONMENT_NAME
+    <<: *aws-env
   dependencies: []
   cache: []
   image:
@@ -252,30 +283,11 @@ job-deploy-frontend:
     entrypoint: ["/usr/bin/env"]
   script:
     - >-
-      aws
-      --endpoint-url=$ENDPOINT_URL
-      --region ru-central1
-      s3 sync frontend/dist/apps/app s3://$S3_BUCKET
+      aws s3 sync ./frontend/dist/apps/app $S3_BUCKET
   only:
     changes:
       - frontend
       - docs
-
-# job-test-e2e-allure:
-#   stage: test-e2e
-#   when: always
-#   needs:
-#     - job-test-e2e
-#   cache: []
-#   image: frankescobar/allure-docker-service
-#   script:
-#     - cd backend
-#     - allure generate -c ./target/xunit-results-e2e -o ./target/allure-report
-#   artifacts:
-#     paths:
-#       - ./backend/target/xunit-results-e2e
-#       - ./backend/target/allure-report
-#     expire_in: 1 day
 
 # job-deploy-backend-production:
 #   stage: deploy-production
