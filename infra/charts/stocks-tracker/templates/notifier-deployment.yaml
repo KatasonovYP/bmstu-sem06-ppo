@@ -3,9 +3,6 @@ kind: Deployment
 metadata:
   name: {{ .Values.meta.name }}-notifier-deployment
   namespace: {{ .Values.meta.namespace }}
-  annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   replicas: {{ .Values.scaling.minReplicas }}
   selector:

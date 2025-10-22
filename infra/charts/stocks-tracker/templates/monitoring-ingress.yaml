@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Values.meta.name }}-monitoring-ingress
+  namespace: loki
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    traefik.ingress.kubernetes.io/redirect-entry-point: https
+spec:
+  ingressClassName: traefik
+  tls:
+  - hosts:
+    - {{ .Values.ingress.monitoring.host }}
+    secretName: {{ .Values.meta.name }}-monitoring-tls-cert
+  rules:
+    - host: {{ .Values.ingress.monitoring.host }}
+      http:
+        paths:
+          - pathType: Prefix
+            path: {{ .Values.ingress.monitoring.path }}
+            backend:
+              service:
+                name: loki-grafana
+                port:
+                  number: 80

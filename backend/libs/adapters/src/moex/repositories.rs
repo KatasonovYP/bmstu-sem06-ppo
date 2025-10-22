@@ -38,7 +38,7 @@ impl Default for MoexExchangeRepository {
 #[async_trait::async_trait]
 impl ExchangeRepository for MoexExchangeRepository {
     #[tracing::instrument(level = "trace", skip(self), err(Debug), ret)]
-    async fn get_security(&self, security_id: String) -> Result<SecurityEntity, DomainError> {
+    async fn get_security(&self, security_id: &str) -> Result<SecurityEntity, DomainError> {
         let response = self
             .client
             .get(format!(
@@ -62,7 +62,7 @@ impl ExchangeRepository for MoexExchangeRepository {
     }
 
     #[tracing::instrument(level = "trace", skip(self), err(Debug), ret)]
-    async fn get_trades(&self, security_id: String) -> Result<Vec<TradeEntity>, DomainError> {
+    async fn get_trades(&self, security_id: &str) -> Result<Vec<TradeEntity>, DomainError> {
         let url = format!(
             "{}/iss/engines/stock/markets/shares/securities/{}/trades.xml?limit=10&reversed=1",
             self.base_url, security_id

@@ -13,7 +13,7 @@ use tokio::time::{
 
 #[tokio::main]
 async fn main() {
-    let settings = Settings::new().unwrap();
+    let settings = Settings::new("config/app.default.yaml").unwrap();
     let module = di_domain_module(settings.clone()).await;
     let limit_monitor_service: Arc<dyn AbstractLimitMonitorService> = module.resolve();
     let mut interval = time::interval(Duration::from_secs(settings.notify_interval_sec));

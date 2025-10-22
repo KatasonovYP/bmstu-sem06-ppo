@@ -8,19 +8,26 @@ image:
   command: ["./app"]
 
 ingress:
-  host: api.stocks-tracker.ru
-  path: /
-  tls:
-    enabled: false
-    redirectHttp: false
-    # secretName: custom-tls-cert # Optional: specify if you have a pre-created TLS secret
-  timeouts:
-    request: 30s
-  rateLimit:
-    enabled: false
-    average: 100
-    burst: 50
+  api:
+    host: api.stocks-tracker.ru
+    path: /
+  api_draft:
+    host: api-draft.stocks-tracker.ru
+    path: /
+    mirror_path: /mirror
+  admin:
+    host: admin.stocks-tracker.ru
+    path: /
+  monitoring:
+    host: monitoring.stocks-tracker.ru
+    path: /
+  gw:
+    host: gw.stocks-tracker.ru
+    path: /
 
+
+gw:
+  port: 80
 port: 3000
 
 scaling:
@@ -34,11 +41,11 @@ rollingUpdate:
 
 resources:
   limits:
-    cpu: 1000m
-    memory: 1Gi
+    cpu: 500m
+    memory: 512Mi
   requests:
-    cpu: 1000m
-    memory: 1Gi
+    cpu: 500m
+    memory: 512Mi
 
 # Add these sections to your existing values.yaml
 redis:
@@ -73,7 +80,7 @@ postgres:
     size: 5Gi
   database: stocks_tracker
   username: postgres
-  password: change-me-in-production
+  password: default-postgres-password
 
 
 env:
@@ -85,8 +92,5 @@ env:
   POSTGRES_USER: "postgres"
 
 secret:
-  REDIS_PASSWORD: "your-redis-password"
-  POSTGRES_PASSWORD: "change-me-in-production"
-  APP_REDIS_CONNECTION_STRING: "redis://your-redis-password@stocks-tracker-testing-redis-service:6379/0"
-  APP_POSTGRES_CONNECTION_STRING: "postgresql://postgres:change-me-in-production@stocks-tracker-testing-postgres-service:5432/stocks_tracker"
-  DATABASE_URL: "postgresql://postgres:change-me-in-production@stocks-tracker-testing-postgres-service:5432/stocks_tracker"
+  APP_REDIS_CONNECTION_STRING: "redis://default-redis-password@stocks-tracker-testing-redis-service:6379/0"
+  APP_POSTGRES_CONNECTION_STRING: "postgresql://postgres:default-postgres-password@stocks-tracker-testing-postgres-service:5432/stocks_tracker"

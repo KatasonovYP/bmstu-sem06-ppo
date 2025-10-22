@@ -13,15 +13,19 @@ use adapters::{
     settings::Settings,
 };
 use axum::{
+    Json,
     ServiceExt,
     extract::Request,
     middleware,
+    routing::get,
 };
 use controllers::{
     ApiActiveController,
     ApiAuthController,
+    ApiHealthController,
     ApiNotificationController,
     ApiUserController,
+    not_found_handler,
 };
 use http::{
     HeaderName,
@@ -30,7 +34,12 @@ use http::{
 };
 use middlewares::jwt_middleware::JwtAuth;
 use shaku::HasComponent;
-use tower_http::cors::CorsLayer;
+use tower_http::{
+    cors::CorsLayer,
+    normalize_path::NormalizePathLayer,
+    trace::TraceLayer,
+};
+use tower_layer::Layer;
 use utoipa::{
     Modify,
     openapi::{
@@ -43,21 +52,15 @@ use utoipa::{
     },
 };
 use utoipa_axum::router::OpenApiRouter;
-use utoipa_swagger_ui::SwaggerUi;
 
-#[tokio::main]
-async fn main() {
-    let settings = Settings::new().unwrap();
-    let jwt_token = settings.clone().telegram_bot_token;
-    let module = di_domain_module(settings.clone()).await;
-
-    let user_controller = ApiUserController::new(module.resolve());
-    let auth_controller = ApiAuthController::new(module.resolve(), jwt_token.clone());
-    let active_controller = ApiActiveController::new(module.resolve());
-    let notification_controller = ApiNotificationController::new(module.resolve());
-
-    #[derive(utoipa::OpenApi)]
-    #[openapi(
+#[derive(utoipa::OpenApi)]
+#[openapi(
+        info(
+            title = "Stocks Tracker API",
+            license(
+                identifier = "MIT"
+            )
+        ),
         modifiers(&SecurityAddon),
         tags(
             (name = "active", description = "CRUD операции над активами пользователя"),
@@ -66,21 +69,35 @@ async fn main() {
             (name = "auth", description = "Операции, связанные с авторизацией и аутентификацией"),
         )
     )]
-    struct ApiDoc;
+struct ApiDoc;
 
-    struct SecurityAddon;
+struct SecurityAddon;
 
-    impl Modify for SecurityAddon {
-        fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
-            if let Some(components) = openapi.components.as_mut() {
-                components.add_security_scheme(
-                    "Authorization",
-                    SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::new("Authorization"))),
-                )
-            }
+impl Modify for SecurityAddon {
+    fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+        if let Some(components) = openapi.components.as_mut() {
+            components.add_security_scheme(
+                "Authorization",
+                SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::new("Authorization"))),
+            )
         }
     }
+}
+
+#[tokio::main]
+async fn main() {
+    let settings = Settings::new("config/app.default.yaml").unwrap();
+    let jwt_token = settings.clone().telegram_bot_token;
+    let module = di_domain_module(settings.clone()).await;
+
+    let user_controller = ApiUserController::new(module.resolve());
+    let auth_controller = ApiAuthController::new(module.resolve(), jwt_token.clone());
+    let active_controller = ApiActiveController::new(module.resolve());
+    let notification_controller = ApiNotificationController::new(module.resolve());
+    let health_controller = ApiHealthController::new();
+
     let jwt_auth = Arc::new(JwtAuth::new(jwt_token.clone()));
+
     let protected_router = OpenApiRouter::new()
         .nest("/actives", active_controller.router())
         .nest("/notifications", notification_controller.router())
@@ -89,12 +106,18 @@ async fn main() {
             jwt_auth.clone(),
             middlewares::jwt_middleware::jwt_middleware,
         ));
-    let auth_router = OpenApiRouter::new().nest("/auth", auth_controller.router(&jwt_token));
 
-    let (router, api): (axum::Router, OpenApi) =
+    let public_router = OpenApiRouter::new()
+        .nest("/auth", auth_controller.router(&jwt_token))
+        .nest("/health", health_controller.router());
+
+    let api_v1_router = OpenApiRouter::new()
+        .merge(protected_router)
+        .merge(public_router);
+
+    let (app_router, api): (axum::Router, OpenApi) =
         OpenApiRouter::with_openapi(<ApiDoc as utoipa::OpenApi>::openapi())
-            .nest("/api/v1", protected_router)
-            .nest("/api/v1", auth_router)
+            .nest("/api/v1", api_v1_router)
             .split_for_parts();
 
     let origins = settings
@@ -118,11 +141,14 @@ async fn main() {
         ])
         .allow_credentials(true);
 
-    let router = router
+    let router = axum::Router::<()>::new()
+        .merge(app_router)
+        .route("/api/v1", get(|| async { Json(api) }))
+        .fallback(not_found_handler)
         .layer(cors)
-        .merge(SwaggerUi::new("/swagger/").url("/api-docs/openapi.json", api));
+        .layer(TraceLayer::new_for_http());
 
-    // let router = NormalizePathLayer::trim_trailing_slash().layer(router);
+    let router = NormalizePathLayer::trim_trailing_slash().layer(router);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], settings.api_server_port));
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();

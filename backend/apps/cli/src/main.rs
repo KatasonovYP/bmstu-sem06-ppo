@@ -37,7 +37,7 @@ enum OutputFormat {
 async fn main() {
     let cli = Cli::parse();
 
-    let settings = Settings::new().unwrap();
+    let settings = Settings::new("config/app.default.yaml").unwrap();
     let module = di_domain_module(settings.clone()).await;
 
     let active_cntr = CliActiveController::new(module.resolve());

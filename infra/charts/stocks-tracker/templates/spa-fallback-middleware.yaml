@@ -1,0 +1,13 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: spa-fallback
+  namespace: {{ .Values.meta.namespace }}
+spec:
+  errors:
+    status:
+      - "404"
+    service:
+      name: {{ .Values.meta.name }}-admin-service
+      port: 80
+    query: /admin

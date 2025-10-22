@@ -13,41 +13,53 @@ fake = ["dep:fake"]
 domain = { path = "../domain" }
 
 # Async and runtime
-tokio = { version = "1.29.1", features = ["full"] }
-async-trait = "0.1.88"
-
+tokio = { workspace = true, features = ["full"] }
+async-trait = { workspace = true }
 # Web and networking
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+reqwest = { workspace = true, default-features = false, features = [
+    "json",
+    "rustls-tls",
+] }
 
 # Serialization
-serde = { version = "1.0", features = ["derive"] }
-serde_derive = "1.0"
-quick-xml = { version = "0.37.4", features = ["serialize"] }
+serde = { workspace = true, features = ["derive"] }
+serde_derive = { workspace = true }
+quick-xml = { workspace = true, features = ["serialize"] }
 
 # Database
-sea-orm = { version = "1.1.8", features = [
+sea-orm = { workspace = true, features = [
     "sqlx-postgres",
     "runtime-tokio-rustls",
     "macros",
+    "mock",
 ] }
-redis = { version = "0.30.0", features = ["tokio-comp"] }
+seaography = { workspace = true, features = [
+    "with-decimal",
+    "with-chrono",
+    "with-uuid",
+    "field-snake-case",
+] }
+redis = { workspace = true, features = ["tokio-comp"] }
 
 # Utilities
-uuid = { version = "1.16", features = ["v4"] }
-chrono = "0.4"
-dotenvy = "0.15.7"
-shaku = "0.6.2"
+uuid = { workspace = true, features = ["v4"] }
+chrono = { workspace = true }
+dotenvy = { workspace = true }
+shaku = { workspace = true }
 
 # Logging and tracing
-log = "0.4.26"
-tracing = { version = "0.1", features = ["attributes"] }
-tracing-subscriber = { version = "0.3.19", features = ["json"] }
-tracing-appender = "0.2.3"
+log = { workspace = true }
+tracing = { workspace = true, features = ["attributes"] }
+tracing-subscriber = { workspace = true, features = ["json"] }
+tracing-appender = { workspace = true }
 
 # Telegram
-teloxide = { version = "0.15", default-features = false, features = ["macros", "rustls"] }
+teloxide = { workspace = true, default-features = false, features = [
+    "macros",
+    "rustls",
+] }
 
-# Testing and mocking (required in main code for interfaces)
-mockall = { version = "0.13.1", optional = true }
-fake = { version = "4.3", features = ["chrono", "derive"], optional = true }
-config = "0.15.11"
+# Testing and mocking
+mockall = { workspace = true, optional = true }
+fake = { workspace = true, features = ["chrono", "derive"], optional = true }
+config = { workspace = true }

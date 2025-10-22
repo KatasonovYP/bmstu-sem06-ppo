@@ -56,7 +56,7 @@ impl ApiNotificationController {
     )
 )]
 #[axum_macros::debug_handler]
-#[tracing::instrument(skip(controller), ret)]
+#[tracing::instrument(skip(controller), err(Debug), ret)]
 async fn get_notification(
     State(controller): State<Arc<ApiNotificationController>>,
     Path(notification_id): Path<u32>,
@@ -82,7 +82,7 @@ async fn get_notification(
     )
 )]
 #[axum_macros::debug_handler]
-#[tracing::instrument(skip(controller), ret)]
+#[tracing::instrument(skip(controller), err(Debug), ret)]
 async fn list_active_notifications(
     State(controller): State<Arc<ApiNotificationController>>,
     Path(active_id): Path<u32>,
@@ -105,7 +105,8 @@ async fn list_active_notifications(
         (status = 200, description = "Create notification success", body = NotificationResponse)
     )
 )]
-#[tracing::instrument(skip(controller), ret)]
+#[axum_macros::debug_handler]
+#[tracing::instrument(skip(controller), err(Debug), ret)]
 async fn create_notification(
     State(controller): State<Arc<ApiNotificationController>>,
     Json(notification): Json<NotificationRequest>,
@@ -125,13 +126,14 @@ async fn create_notification(
     path = "/{notification_id}",
     tag = "notification",
     params(
-        ("notification_id", description = "Notification id"),
+        ("notification_id" = u32, Path, description = "Notification id"),
     ),
     responses(
         (status = 200, description = "Update notification success", body = NotificationResponse)
     )
 )]
-#[tracing::instrument(skip(controller), ret)]
+#[axum_macros::debug_handler]
+#[tracing::instrument(skip(controller), err(Debug), ret)]
 async fn update_notification(
     State(controller): State<Arc<ApiNotificationController>>,
     Json(notification): Json<NotificationRequest>,
@@ -158,7 +160,7 @@ async fn update_notification(
     )
 )]
 #[axum_macros::debug_handler]
-#[tracing::instrument(skip(controller), ret)]
+#[tracing::instrument(skip(controller), err(Debug), ret)]
 async fn delete_notification(
     State(controller): State<Arc<ApiNotificationController>>,
     Path(notification_id): Path<u32>,

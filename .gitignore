@@ -2,4 +2,6 @@
 **/target
 **/.env
 .idea/
-backend/test-results
+**/.openapi-generator
+**/.helmwave
+key.txt

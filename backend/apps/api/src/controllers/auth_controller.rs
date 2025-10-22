@@ -75,7 +75,7 @@ impl ApiAuthController {
     )
 )]
 #[axum_macros::debug_handler]
-#[tracing::instrument(skip(controller), ret)]
+#[tracing::instrument(skip(controller), err(Debug), ret)]
 async fn login(
     State(controller): State<Arc<ApiAuthController>>,
     telegram_user: TelegramUser,

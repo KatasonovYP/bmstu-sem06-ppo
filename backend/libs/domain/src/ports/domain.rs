@@ -83,6 +83,7 @@ pub trait AbstractPriceOpsService: Interface + Send + Sync + 'static {
         actives: Vec<ActiveEntity>,
     ) -> Result<Price, DomainError>;
     async fn get_active_current_price(&self, active: &ActiveEntity) -> Result<Price, DomainError>;
+    async fn get_security_current_price(&self, security_id: &str) -> Result<Price, DomainError>;
     async fn get_price_delta(&self, active: &ActiveEntity) -> Result<Price, DomainError>;
 }
 
@@ -96,6 +97,6 @@ pub trait AbstractLimitMonitorService: Interface + Send + Sync + 'static {
 #[async_trait::async_trait]
 pub trait AbstractPriceCacheService: Interface + Send + Sync + 'static {
     async fn get_price(&self, active: &ActiveEntity) -> Result<Price, DomainError>;
-    async fn refresh_price(&self, active: &ActiveEntity) -> Result<Price, DomainError>;
+    async fn refresh_security_price(&self, security_id: &str) -> Result<Price, DomainError>;
     async fn refresh_all_prices(&self) -> Result<(), DomainError>;
 }

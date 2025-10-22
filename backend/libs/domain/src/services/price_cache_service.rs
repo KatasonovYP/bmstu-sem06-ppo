@@ -46,30 +46,33 @@ impl AbstractPriceCacheService for PriceCacheService {
     #[tracing::instrument(skip(self), err(Debug), ret)]
     async fn get_price(&self, active: &ActiveEntity) -> Result<Price, DomainError> {
         let price = match self.price_cache_repo.get_price(&active.security_id).await {
-            Err(_) => self.refresh_price(active).await?,
+            Err(_) => self.refresh_security_price(&active.security_id).await?,
             Ok(price) => price,
         };
-        Ok(price)
+        Ok(price * active.count)
     }
 
     #[tracing::instrument(skip(self), err(Debug), ret)]
     async fn refresh_all_prices(&self) -> Result<(), DomainError> {
         let actives = self.active_repo.list_actives().await?;
-        tracing::info!("refresh prices for {:#?}", actives);
-        for active in &actives {
-            self.refresh_price(active).await?;
+        let mut securities: Vec<String> = actives.iter().map(|x| x.security_id.clone()).collect();
+        securities.sort();
+        securities.dedup();
+        tracing::info!("refresh prices for {:#?}", securities);
+        for security in &securities {
+            self.refresh_security_price(security).await?;
         }
         Ok(())
     }
 
     #[tracing::instrument(skip(self), err(Debug), ret)]
-    async fn refresh_price(&self, active: &ActiveEntity) -> Result<Price, DomainError> {
+    async fn refresh_security_price(&self, security_id: &str) -> Result<Price, DomainError> {
         let price = self
             .price_ops_service
-            .get_active_current_price(active)
+            .get_security_current_price(security_id)
             .await?;
         self.price_cache_repo
-            .set_price(&active.security_id, price.clone())
+            .set_price(security_id, price.clone())
             .await?;
         Ok(price)
     }
@@ -133,13 +136,13 @@ mod tests {
 
         let mut price_ops_service = MockAbstractPriceOpsService::new();
         price_ops_service
-            .expect_get_active_current_price()
-            .with(eq(active1.clone()))
+            .expect_get_security_current_price()
+            .with(eq(active1.security_id.clone()))
             .returning(move |_| Ok(price1_clone1.clone()));
 
         price_ops_service
-            .expect_get_active_current_price()
-            .with(eq(active2.clone()))
+            .expect_get_security_current_price()
+            .with(eq(active2.security_id.clone()))
             .returning(move |_| Ok(price2_clone1.clone()));
 
         let mut price_cache_repo = MockPriceCacheRepository::new();
@@ -233,8 +236,8 @@ mod tests {
 
         let mut price_ops_service = MockAbstractPriceOpsService::new();
         price_ops_service
-            .expect_get_active_current_price()
-            .with(eq(active_clone.clone()))
+            .expect_get_security_current_price()
+            .with(eq(active_clone.security_id.clone()))
             .returning(|_| {
                 Err(DomainError::ExternalServiceError(
                     "Exchange API error".to_string(),
@@ -278,8 +281,8 @@ mod tests {
 
         let mut price_ops_service = MockAbstractPriceOpsService::new();
         price_ops_service
-            .expect_get_active_current_price()
-            .with(eq(active_clone1.clone()))
+            .expect_get_security_current_price()
+            .with(eq(active_clone1.security_id.clone()))
             .returning(move |_| Ok(price_clone1.clone()));
 
         let mut price_cache_repo = MockPriceCacheRepository::new();
@@ -342,14 +345,14 @@ mod tests {
         let mut price_ops_service = MockAbstractPriceOpsService::new();
         // Настройка для первого актива
         price_ops_service
-            .expect_get_active_current_price()
-            .with(eq(active1_clone1.clone()))
+            .expect_get_security_current_price()
+            .with(eq(active1_clone1.security_id.clone()))
             .returning(move |_| Ok(price1_clone1.clone()));
 
         // Настройка для второго актива - возвращает ошибку
         price_ops_service
-            .expect_get_active_current_price()
-            .with(eq(active2_clone.clone()))
+            .expect_get_security_current_price()
+            .with(eq(active2_clone.security_id.clone()))
             .returning(|_| {
                 Err(DomainError::ExternalServiceError(
                     "Error for active2".to_string(),
@@ -358,8 +361,8 @@ mod tests {
 
         // Настройка для третьего актива
         price_ops_service
-            .expect_get_active_current_price()
-            .with(eq(active3_clone1.clone()))
+            .expect_get_security_current_price()
+            .with(eq(active3_clone1.security_id.clone()))
             .returning(move |_| Ok(price3_clone1.clone()));
 
         let mut price_cache_repo = MockPriceCacheRepository::new();

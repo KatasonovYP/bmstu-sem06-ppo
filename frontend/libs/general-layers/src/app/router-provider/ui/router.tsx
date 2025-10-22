@@ -4,6 +4,7 @@ import { staticRoutes } from '@/general/shared/config/const';
 import { HomePage } from '@/general/pages/home-page';
 import { SettingsPage } from '@/general/pages/settings-page';
 import { ActivePage } from '@/general/pages/active-page';
+import { DocsPage } from '@/general/pages/docs-page';
 
 export const router = createBrowserRouter([
     {
@@ -21,6 +22,10 @@ export const router = createBrowserRouter([
             {
                 path: staticRoutes.active,
                 element: <ActivePage />,
+            },
+            {
+                path: staticRoutes.docs,
+                element: <DocsPage />,
             },
         ],
     },

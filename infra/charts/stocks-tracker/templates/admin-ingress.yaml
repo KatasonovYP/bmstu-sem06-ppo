@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Values.meta.name }}-admin-ingress
+  namespace: {{ .Values.meta.namespace }}
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    traefik.ingress.kubernetes.io/redirect-entry-point: https
+    traefik.ingress.kubernetes.io/router.middlewares: "{{ .Values.meta.namespace }}-spa-fallback@kubernetescrd"
+spec:
+  ingressClassName: traefik
+  tls:
+  - hosts:
+    - {{ .Values.ingress.admin.host }}
+    secretName: {{ .Values.meta.name }}-admin-tls-cert
+  rules:
+    - host: {{ .Values.ingress.admin.host }}
+      http:
+        paths:
+          - pathType: Prefix
+            path: {{ .Values.ingress.admin.path }}
+            backend:
+              service:
+                name: {{ .Values.meta.name }}-admin-service
+                port:
+                  number: 80

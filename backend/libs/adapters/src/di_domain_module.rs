@@ -102,7 +102,7 @@ pub async fn di_domain_module(settings: Settings) -> DomainModule {
 
     tracing::debug!("{settings:?}");
 
-    let postgres_connection =
+    let postgres_connection_pool =
         PostgresConnectionPool::new_connection_pool(settings.postgres_connection_string)
             .await
             .unwrap();
@@ -114,7 +114,7 @@ pub async fn di_domain_module(settings: Settings) -> DomainModule {
 
     DomainModule::builder()
         .with_component_parameters::<PostgresConnectionPool>(PostgresConnectionPoolParameters {
-            connection: postgres_connection,
+            connection: postgres_connection_pool,
         })
         .with_component_parameters::<RedisPriceCacheRepository>(
             RedisPriceCacheRepositoryParameters {

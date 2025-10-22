@@ -26,13 +26,17 @@ pub struct PostgresConnectionPool {
 }
 
 impl PostgresConnectionPool {
+    pub fn new(connection: Arc<DatabaseConnection>) -> Self {
+        Self { connection }
+    }
+
     pub async fn new_connection_pool(
         connection_string: String,
     ) -> Result<Arc<DatabaseConnection>, sea_orm::DbErr> {
         let mut opt = ConnectOptions::new(connection_string);
 
         opt.max_connections(100)
-            .min_connections(5)
+            .min_connections(1)
             .connect_timeout(Duration::from_secs(8))
             .acquire_timeout(Duration::from_secs(8))
             .idle_timeout(Duration::from_secs(8))

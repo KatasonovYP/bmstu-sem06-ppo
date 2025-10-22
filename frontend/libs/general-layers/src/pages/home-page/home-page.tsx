@@ -86,6 +86,12 @@ export default function HomePage(props: HomePageProps) {
 
     return (
         <div>
+            <Link
+                to={staticRoutes.docs}
+                className={cls.activeLink}
+            >
+                <p>Документация</p>
+            </Link>
             <h1>Добавить новый актив</h1>
 
             <div className={cls.formContainer}>

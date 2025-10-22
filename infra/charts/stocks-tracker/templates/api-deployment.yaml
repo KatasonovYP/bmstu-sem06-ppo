@@ -29,11 +29,11 @@ spec:
           imagePullPolicy: IfNotPresent
           readinessProbe:
             httpGet:
-              path: /swagger
+              path: /api/v1/health/ping
               port: {{ .Values.port }}
               httpHeaders:
                 - name: Host
-                  value: {{ .Values.ingress.host }}
+                  value: {{ .Values.ingress.api.host }}
             initialDelaySeconds: 15
             periodSeconds: 10
           envFrom:
