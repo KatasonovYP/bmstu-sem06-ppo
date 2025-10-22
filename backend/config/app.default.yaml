@@ -4,11 +4,18 @@ refresh_interval_sec: 5
 notify_interval_sec: 5
 api_cors_origins:
   - http://localhost:4400
+  - http://localhost:5500
   - https://stocks-tracker.ru
   - https://stocks-tracker.serveo.net
   - https://stocks-tracker.ru.website.yandexcloud.net
+  - https://swagger.stocks-tracker.ru
 api_server_port: 3000
 moex_base_url: https://iss.moex.com
+local_admin: false
 postgres_connection_string: set this var via .env
 redis_connection_string: set this var via .env
-telegram_bot_token: set this var via .env 
+telegram_bot_token: set this var via .env
+admin_user_login: set this var via .env
+admin_user_password: set this var via .env
+admin_user_pid: set this var via .env
+admin_user_token: set this var via .env

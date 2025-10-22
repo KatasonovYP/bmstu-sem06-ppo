@@ -97,11 +97,11 @@
 
 В качестве архитектуры будет использоваться [FSD](https://feature-sliced.design/docs)
 
-![alt text](docs/images/fsd.png)
+![alt text](./docs/images/fsd.png)
 
 ссылка на [figma](https://www.figma.com/design/Xe40VmC8jc4humaiORuOx3/-shadcn-ui---Design-System--Community---Copy-?node-id=1103-995&t=hMLxsIYSduqq0UeS-1)
 
-![alt text](docs/images/preview.jpg)
+![alt text](./docs/images/preview.jpg)
 
 ### Архитектура бекенд приложения
 

@@ -15,7 +15,8 @@ spec:
       containers:
         - name: {{ .Values.meta.name }}-migration
           image: {{ .Values.image.repository }}/migration:{{ .Values.image.tag }}
-          command: ["./app", "up"]
+          command: ["./app", "up", "--database-url"]
+          args: ["$(APP_POSTGRES_CONNECTION_STRING)"]
           envFrom:
             - configMapRef:
                 name: {{ .Values.meta.name }}-config

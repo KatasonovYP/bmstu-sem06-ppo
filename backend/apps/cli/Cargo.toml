@@ -9,21 +9,21 @@ domain = { path = "../../libs/domain" }
 adapters = { path = "../../libs/adapters" }
 
 # Async and runtime
-tokio = { version = "1.29.1", features = ["full"] }
+tokio = { workspace = true, features = ["full"] }
 
 # Utilities
-uuid = { version = "1.16", features = ["v4"] }
-chrono = "0.4"
-regex = "1.11"
-rand = "0.9.0"
-clap = { version = "4.5", features = ["derive"] }
-dotenvy = "0.15.7"
-shaku = "0.6.2"
+uuid = { workspace = true, features = ["v4"] }
+chrono = { workspace = true }
+regex = { workspace = true }
+rand = { workspace = true }
+clap = { workspace = true, features = ["derive"] }
+dotenvy = { workspace = true }
+shaku = { workspace = true }
 
 # Error handling
-thiserror = "2.0"
+thiserror = { workspace = true }
 
 # Logging and tracing
-log = "0.4.26"
-tracing = { version = "0.1", features = ["attributes"] }
-tracing-subscriber = { version = "0.3.19", features = ["json"] }
+log = { workspace = true }
+tracing = { workspace = true, features = ["attributes"] }
+tracing-subscriber = { workspace = true, features = ["json"] }

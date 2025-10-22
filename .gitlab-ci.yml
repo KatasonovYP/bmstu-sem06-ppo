@@ -4,64 +4,147 @@ workflow:
     - if: $CI_PIPELINE_SOURCE == "web"
     - when: never
 
-
 stages:
+  - prepare
   - build
-  - deploy
+  - test
+  - deploy-testing
+  - test-e2e
+  - deploy-production
 
-build-frontend:
-  stage: build
-  rules:
-    - if: $CI_COMMIT_TAG || $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $CI_DEFAULT_BRANCH
-      variables:
-        ENVIRONMENT_NAME: "production"
-    - when: always
-  when: manual
-  variables:
-    ENVIRONMENT_NAME: "testing"
-  environment: $ENVIRONMENT_NAME
-  image: node:23.11.0-slim
-  before_script:
-    - cd frontend
-    - yarn
-  script:
-    - yarn nx build app
-  artifacts:
-    paths:
-      - frontend/dist/apps/app/
-    when: always
-
-deploy-frontend:
-  stage: deploy
-  rules:
-    - if: $CI_COMMIT_TAG || $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $CI_DEFAULT_BRANCH
-      variables:
-        ENVIRONMENT_NAME: "production"
-    - when: manual
-  when: manual
-  variables:
-    ENVIRONMENT_NAME: "testing"
-  environment: $ENVIRONMENT_NAME
-  image:
-    name: amazon/aws-cli:2.27.4
-    entrypoint:
-      - '/usr/bin/env'
-  script:
-    - >-
-      aws
-      --endpoint-url=$ENDPOINT_URL
-      --region ru-central1
-      s3 sync frontend/dist/apps/app s3://$S3_BUCKET
-
-build-backend:
-  stage: build
-  when: manual
+job-build-push-builder-image:
+  stage: prepare
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
+  dependencies: []
+  cache: []
+  script:
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"${CI_REGISTRY}\":{\"auth\":\"$(echo -n "json_key:${CI_REGISTRY_KEY}" | base64 | tr -d '\n' )\"}}}" > /kaniko/.docker/config.json
+    - >-
+      /kaniko/executor
+      --context "${CI_PROJECT_DIR}"
+      --dockerfile "${CI_PROJECT_DIR}/infra/ci/builder.Dockerfile"
+      --destination "${CI_REGISTRY}/${CI_PROJECT_PATH}/backend-builder:latest"
+  only:
+    changes:
+      - infra/ci/*
+
+job-build-backend:
+  stage: build
+  image: cr.yandex/crpav8o4hj057l1dbgqa/the-qsb/stocks-tracker/backend-builder:latest
+  needs:
+    - job: job-build-push-builder-image
+      optional: true
+  dependencies: []
+  variables:
+    # RUSTC_WRAPPER: sccache
+    # SCCACHE_DIR: .sccache-cache
+    # SCCACHE_CACHE_SIZE: "10G"
+    RUSTC_WRAPPER: sccache
+    SCCACHE_BUCKET: stocks-tracker.ru
+    SCCACHE_REGION: ru-central1
+    SCCACHE_ENDPOINT: storage.yandexcloud.net
+    SCCACHE_S3_KEY_PREFIX: cache/sccache
+  cache:
+    # - key: sccache-local
+    #   policy: pull-push
+    #   paths:
+    #     - .sccache-cache
+    - key: backend-bin
+      policy: push
+      paths:
+        - backend/bin
+    - key: backend-tests
+      policy: push
+      paths:
+        - backend/tests
+  before_script:
+    - sccache --version
+    - sccache --start-server
+    - cd backend
+  script:
+    - cargo +nightly build --release --all-targets
+    - mkdir ./bin
+    - find ./target/$CARGO_BUILD_TARGET/release -maxdepth 1 -type f -executable | xargs -I '{}' mv {} ./bin
+    - mkdir ./tests
+    - cargo nextest archive --release --lib --archive-file ./tests/unit.tar.zst
+    - cargo nextest archive --release --test "*it*" --archive-file ./tests/integration.tar.zst
+    - cargo nextest archive --release --test "*e2e*" --archive-file ./tests/e2e.tar.zst
+  after_script:
+    - sccache --show-stats
+
+job-test-unit:
+  stage: test
+  when: on_success
+  image: cr.yandex/crpav8o4hj057l1dbgqa/the-qsb/stocks-tracker/backend-builder:latest
+  dependencies: []
+  needs:
+    - job-build-backend
+  cache:
+    - key: backend-tests
+      policy: pull
+      paths:
+        - backend/tests
+  script:
+    - cd backend
+    - cargo nextest run --archive-file ./tests/unit.tar.zst
+    - mkdir allure-results
+    - mv ./target/nextest/default/junit.xml ./allure-results/unit.xml
+  artifacts:
+    paths:
+      - ./backend/allure-results/unit.xml
+    reports:
+      junit: ./backend/allure-results/unit.xml
+
+job-test-integration:
+  stage: test
+  when: on_success
+  needs:
+    - job-test-unit
+  image: cr.yandex/crpav8o4hj057l1dbgqa/the-qsb/stocks-tracker/backend-builder:latest
+  dependencies: []
+  cache:
+    - key: backend-tests
+      policy: pull
+      paths:
+        - backend/tests
+  script:
+    - cd backend
+    - sops --decrypt ./config/app.secrets.production.yaml | yq '.secret | to_entries | .[] | "\(.key)=\"\(.value)\""' -rc > .env
+    - source .env
+    - cargo nextest run --archive-file ./tests/integration.tar.zst --test-threads 1
+    - mkdir allure-results
+    - mv ./target/nextest/default/junit.xml ./allure-results/integration.xml
+  artifacts:
+    paths:
+      - ./backend/allure-results/integration.xml
+    reports:
+      junit: ./backend/allure-results/integration.xml
+
+job-push-backend:
+  stage: build
+  when: on_success
+  needs:
+    - job-build-backend
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+  dependencies: []
+  cache:
+    - key: backend-bin
+      policy: pull
+      paths:
+        - backend/bin
   parallel:
     matrix:
-      - APP: ["api", "migration", "notifier"]
+      - APP:
+        - api
+        - admin
+        - notifier
+        - refresher
+        - migration
   script:
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"${CI_REGISTRY}\":{\"auth\":\"$(echo -n "json_key:${CI_REGISTRY_KEY}" | base64 | tr -d '\n' )\"}}}" > /kaniko/.docker/config.json
@@ -71,30 +154,149 @@ build-backend:
       --dockerfile "${CI_PROJECT_DIR}/backend/Dockerfile"
       --build-arg "APP=${APP}"
       --destination "${CI_REGISTRY}/${CI_PROJECT_PATH}/${APP}:${CI_COMMIT_SHORT_SHA}"
+      --destination "${CI_REGISTRY}/${CI_PROJECT_PATH}/${APP}:latest"
 
-deploy-backend:
-  stage: deploy
-  when: manual
-  rules:
-    - if: $CI_COMMIT_TAG || $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME == $CI_DEFAULT_BRANCH
-      variables:
-        ENVIRONMENT_NAME: "production"
-    - when: manual
+job-deploy-backend-testing:
+  stage: deploy-testing
+  needs:
+    - job-push-backend
+    - job-test-integration
+  when: on_success
   variables:
     ENVIRONMENT_NAME: "testing"
   environment: $ENVIRONMENT_NAME
   image: alpine/k8s:1.30.12
+  dependencies: []
+  cache:
+    - key: backend-tests
+      policy: pull
+      paths:
+        - backend/tests
+  before_script:
+    - helm plugin install https://github.com/jkroepke/helm-secrets --version v4.6.0
+    - apk add sops
   script:
     - kubectl config use-context ${CI_PROJECT_PATH}:yandex-cloud-k3s
     - HELM_NAME="stocks-tracker-${CI_ENVIRONMENT_NAME}"
     - >-
-      helm
+      helm secrets
       -n stocks-tracker
       upgrade ${HELM_NAME}-release ./infra/charts/stocks-tracker
       --install
       --atomic
       --set "meta.name=${HELM_NAME}"
       --set "image.tag=${CI_COMMIT_SHORT_SHA}"
-      --set "secret.APP_POSTGRES_CONNECTION_STRING=${APP_POSTGRES_CONNECTION_STRING}"
-      --set "secret.APP_REDIS_CONNECTION_STRING=${APP_REDIS_CONNECTION_STRING}"
-      --set "secret.APP_TELEGRAM_BOT_TOKEN=${APP_TELEGRAM_BOT_TOKEN}"
+      -f backend/config/app.secrets.production.yaml
+
+job-test-e2e:
+  stage: test-e2e
+  when: on_success
+  needs:
+    - job-deploy-backend-testing
+  image: cr.yandex/crpav8o4hj057l1dbgqa/the-qsb/stocks-tracker/backend-builder:latest
+  dependencies: []
+  cache:
+    - key: backend-tests
+      policy: pull
+      paths:
+        - backend/tests
+  script:
+    - cd backend
+    - sops --decrypt ./config/app.secrets.production.yaml | yq '.secret | to_entries | .[] | "\(.key)=\"\(.value)\""' -rc > .env
+    - source .env
+    - cargo nextest run --archive-file ./tests/e2e.tar.zst --test-threads 1
+    - mkdir allure-results
+    - mv ./target/nextest/default/junit.xml ./allure-results/e2e.xml
+  artifacts:
+    paths:
+      - ./backend/allure-results/e2e.xml
+    reports:
+      junit: ./backend/allure-results/e2e.xml
+
+job-build-frontend:
+  stage: build
+  when: on_success
+  variables:
+    ENVIRONMENT_NAME: "testing"
+  environment: $ENVIRONMENT_NAME
+  image: node:23.11.0-slim
+  dependencies: []
+  cache: []
+  before_script:
+    - cd frontend
+    - yarn
+  script:
+    - yarn nx build app
+  artifacts:
+    paths:
+      - frontend/dist/apps/app/
+    when: always
+  only:
+    changes:
+      - frontend
+      - docs
+
+job-deploy-frontend:
+  stage: deploy-testing
+  when: on_success
+  needs:
+    - job-build-frontend
+    - job-test-integration
+  variables:
+    ENVIRONMENT_NAME: "testing"
+  environment: $ENVIRONMENT_NAME
+  dependencies: []
+  cache: []
+  image:
+    name: amazon/aws-cli:2.27.4
+    entrypoint: ["/usr/bin/env"]
+  script:
+    - >-
+      aws
+      --endpoint-url=$ENDPOINT_URL
+      --region ru-central1
+      s3 sync frontend/dist/apps/app s3://$S3_BUCKET
+  only:
+    changes:
+      - frontend
+      - docs
+
+# job-test-e2e-allure:
+#   stage: test-e2e
+#   when: always
+#   needs:
+#     - job-test-e2e
+#   cache: []
+#   image: frankescobar/allure-docker-service
+#   script:
+#     - cd backend
+#     - allure generate -c ./target/xunit-results-e2e -o ./target/allure-report
+#   artifacts:
+#     paths:
+#       - ./backend/target/xunit-results-e2e
+#       - ./backend/target/allure-report
+#     expire_in: 1 day
+
+# job-deploy-backend-production:
+#   stage: deploy-production
+#   needs:
+#     - job-push-backend
+#   when: on_success
+#   variables:
+#     ENVIRONMENT_NAME: "production"
+#   environment: $ENVIRONMENT_NAME
+#   image: alpine/k8s:1.30.12
+#   script:
+#     - kubectl config use-context ${CI_PROJECT_PATH}:yandex-cloud-k3s
+#     - HELM_NAME="stocks-tracker-${CI_ENVIRONMENT_NAME}"
+#     - >-
+#       helm
+#       -n stocks-tracker
+#       upgrade ${HELM_NAME}-release ./infra/charts/stocks-tracker
+#       --install
+#       --atomic
+#       --set "meta.name=${HELM_NAME}"
+#       --set "image.tag=${CI_COMMIT_SHORT_SHA}"
+#       --set "secret.APP_POSTGRES_CONNECTION_STRING=${APP_POSTGRES_CONNECTION_STRING}"
+#       --set "secret.APP_REDIS_CONNECTION_STRING=${APP_REDIS_CONNECTION_STRING}"
+#       --set "secret.APP_TELEGRAM_BOT_TOKEN=${APP_TELEGRAM_BOT_TOKEN}"

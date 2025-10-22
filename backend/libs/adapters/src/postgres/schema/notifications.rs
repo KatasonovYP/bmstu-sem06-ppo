@@ -6,7 +6,7 @@ use serde::{
     Serialize,
 };
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize, Default)]
 #[sea_orm(table_name = "notifications")]
 pub struct Model {
     #[sea_orm(primary_key)]
@@ -49,3 +49,11 @@ impl Related<super::sent::Entity> for Entity {
 }
 
 impl ActiveModelBehavior for ActiveModel {}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelatedEntity)]
+pub enum RelatedEntity {
+    #[sea_orm(entity = "super::actives::Entity")]
+    Actives,
+    #[sea_orm(entity = "super::sent::Entity")]
+    Sent,
+}

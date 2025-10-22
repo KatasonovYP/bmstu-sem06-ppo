@@ -82,6 +82,7 @@ async fn get_active(
     ),
     security(("Authorization" = [])),
 )]
+#[axum_macros::debug_handler]
 #[tracing::instrument(skip(controller), err(Debug), ret)]
 async fn list_user_actives(
     State(controller): State<Arc<ApiActiveController>>,
@@ -125,11 +126,11 @@ async fn create_active(
 }
 
 #[utoipa::path(
-    put,
+    patch,
     path = "/{active_id}",
     tag = "active",
     params(
-        ("active_id", description = "Active id"),
+        ("active_id" = u32, Path, description = "Active id"),
     ),
     responses(
         (status = 200, description = "Update active success", body = ActiveResponse)

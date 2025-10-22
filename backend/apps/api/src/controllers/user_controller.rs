@@ -51,7 +51,7 @@ impl ApiUserController {
     )
 )]
 #[axum_macros::debug_handler]
-#[tracing::instrument(skip(controller), ret)]
+#[tracing::instrument(skip(controller), err(Debug), ret)]
 async fn get_user(
     State(controller): State<Arc<ApiUserController>>,
     Path(user_id): Path<u32>,
@@ -81,7 +81,7 @@ async fn get_user(
     )
 )]
 #[axum_macros::debug_handler]
-#[tracing::instrument(skip(controller), ret)]
+#[tracing::instrument(skip(controller), err(Debug), ret)]
 async fn list_users(
     State(controller): State<Arc<ApiUserController>>,
 ) -> Result<Json<Vec<UserResponse>>, ApiError> {
@@ -104,7 +104,7 @@ async fn list_users(
     )
 )]
 #[axum_macros::debug_handler]
-#[tracing::instrument(skip(controller), ret)]
+#[tracing::instrument(skip(controller), err(Debug), ret)]
 async fn create_user(
     State(controller): State<Arc<ApiUserController>>,
     Json(user): Json<UserRequest>,
@@ -124,14 +124,14 @@ async fn create_user(
     path = "/{user_id}",
     tag = "user",
     params(
-        ("user_id", description = "User id"),
+        ("user_id" = u32, Path, description = "User id"),
     ),
     responses(
         (status = 200, description = "Update user success", body = UserResponse)
     )
 )]
 #[axum_macros::debug_handler]
-#[tracing::instrument(skip(controller), ret)]
+#[tracing::instrument(skip(controller), err(Debug), ret)]
 async fn update_user(
     State(controller): State<Arc<ApiUserController>>,
     Json(user): Json<UserRequest>,
@@ -158,7 +158,7 @@ async fn update_user(
     )
 )]
 #[axum_macros::debug_handler]
-#[tracing::instrument(skip(controller), ret)]
+#[tracing::instrument(skip(controller), err(Debug), ret)]
 async fn delete_user(
     State(controller): State<Arc<ApiUserController>>,
     Path(user_id): Path<u32>,

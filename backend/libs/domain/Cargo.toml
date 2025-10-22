@@ -10,20 +10,20 @@ fake = ["dep:fake"]
 
 [dependencies]
 # Async and runtime
-tokio = { version = "1.29.1", features = ["full"] }
-async-trait = "0.1.88"
+tokio = { workspace = true, features = ["full"] }
+async-trait = { workspace = true }
 
 # Utilities
-chrono = "0.4"
-regex = "1.11"
+chrono = { workspace = true }
+regex = { workspace = true }
 
 # Error handling
-thiserror = "2.0"
+thiserror = { workspace = true }
 
 # Logging and tracing
-tracing = { version = "0.1", features = ["attributes"] }
+tracing = { workspace = true, features = ["attributes"] }
 
 # Testing and mocking (required in main code for interfaces)
-mockall = { version = "0.13.1", optional = true }
-fake = { version = "4.3", features = ["chrono", "derive"], optional = true }
-shaku = "0.6.2"
+mockall = { workspace = true, optional = true }
+fake = { workspace = true, features = ["chrono", "derive"], optional = true }
+shaku = { workspace = true }

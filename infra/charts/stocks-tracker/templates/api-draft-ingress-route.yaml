@@ -1,0 +1,47 @@
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ .Values.meta.name }}-replace-mirror-path
+  namespace: {{ .Values.meta.namespace }}
+spec:
+  replacePathRegex:
+    regex: "^{{ .Values.ingress.api_draft.mirror_path }}(.*)"
+    replacement: "{{ .Values.ingress.api_draft.path }}$1"
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ .Values.meta.name }}-api-draft-ingress-route
+  namespace: {{ .Values.meta.namespace }}
+spec:
+  entryPoints:
+    - web
+    - websecure
+  routes:
+    - match: Host(`{{ .Values.ingress.api_draft.host }}`) && PathPrefix(`{{ .Values.ingress.api_draft.path }}`)
+      kind: Rule
+      services:
+        - name: {{ .Values.meta.name }}-api-draft-rw-1-service
+          port: 80
+          weight: 50
+        - name: {{ .Values.meta.name }}-api-draft-ro-1-service
+          port: 80
+          weight: 25
+        - name: {{ .Values.meta.name }}-api-draft-ro-2-service
+          port: 80
+          weight: 25
+    - match: Host(`{{ .Values.ingress.api_draft.host }}`) && PathPrefix(`{{ .Values.ingress.api_draft.mirror_path }}`)
+      kind: Rule
+      middlewares:
+        - name: {{ .Values.meta.name }}-replace-mirror-path
+      services:
+        - name: {{ .Values.meta.name }}-api-draft-mirror-rw-1-service
+          port: 80
+          weight: 50
+        - name: {{ .Values.meta.name }}-api-draft-mirror-ro-1-service
+          port: 80
+          weight: 25
+        - name: {{ .Values.meta.name }}-api-draft-mirror-ro-2-service
+          port: 80
+          weight: 25
