@@ -1,0 +1,11 @@
+meta:
+  name: stocks-tracker-testing
+
+image:
+  tag: {{ env "CI_COMMIT_TAG" }}
+
+ingress:
+  api:
+    host: api.tst.stocks-tracker.ru
+  admin:
+    host: admin.tst.stocks-tracker.ru

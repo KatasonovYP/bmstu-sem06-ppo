@@ -1,0 +1,32 @@
+project: stocks-tracker-production
+version: 0.42.2
+
+.options: &options
+  create_namespace: true
+  wait: true
+  timeout: 1m
+  max_history: 3
+  atomic: true
+  context: the-qsb/stocks-tracker:main
+
+releases:
+
+  - name: patroni-production
+    namespace: patroni
+    <<: *options
+    chart: ./infra/helm/charts/patroni
+    values:
+      - ./infra/helm/values/patroni-production-values.yaml
+      # - src: ./infra/helm/values/patroni-production-secrets.yaml
+      #   renderer: sops
+
+  - name: stocks-tracker-production
+    namespace: stocks-tracker
+    <<: *options
+    chart: ./infra/helm/charts/stocks-tracker
+    depends_on:
+      - patroni-production@patroni
+    values:
+      - ./infra/helm/values/stocks-tracker-production-values.yaml
+      - src: ./infra/helm/values/stocks-tracker-production-secrets.yaml
+        renderer: sops

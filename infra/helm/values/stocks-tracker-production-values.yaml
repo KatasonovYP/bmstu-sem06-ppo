@@ -1,0 +1,11 @@
+meta:
+  name: stocks-tracker-production
+
+image:
+  tag: {{ env "CI_COMMIT_TAG" }}
+
+ingress:
+  api:
+    host: api.stocks-tracker.ru
+  admin:
+    host: admin.stocks-tracker.ru

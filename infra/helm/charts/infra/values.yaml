@@ -1,0 +1,14 @@
+meta:
+  name: infra
+  namespace: infra
+
+ingress:
+  monitoring:
+    host: monitoring.stocks-tracker.ru
+    path: /
+  gw:
+    host: gw.stocks-tracker.ru
+    path: /
+
+gw:
+  port: 80

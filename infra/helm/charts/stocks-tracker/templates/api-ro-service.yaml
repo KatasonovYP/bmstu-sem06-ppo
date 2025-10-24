@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.meta.name }}-api-ro-service
+  namespace: {{ .Values.meta.namespace }}
+spec:
+  selector:
+    app: {{ .Values.meta.name }}-api-ro
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: {{ .Values.port }}

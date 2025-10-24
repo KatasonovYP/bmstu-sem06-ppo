@@ -11,6 +11,7 @@ pub enum ApiError {
     NotFound(String),
     BadRequest(String),
     InternalError(String),
+    NoContent(String),
     Forbidden(String),
 }
 
@@ -31,6 +32,7 @@ impl IntoResponse for ApiError {
         let (status, message) = match self {
             ApiError::NotFound(msg) => (StatusCode::NOT_FOUND, msg),
             ApiError::Forbidden(msg) => (StatusCode::FORBIDDEN, msg),
+            ApiError::NoContent(msg) => (StatusCode::NO_CONTENT, msg),
             ApiError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg),
             ApiError::InternalError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
         };

@@ -17,7 +17,10 @@ use axum::{
     ServiceExt,
     extract::Request,
     middleware,
-    routing::get,
+    routing::{
+        get,
+        options,
+    },
 };
 use controllers::{
     ApiActiveController,
@@ -25,6 +28,7 @@ use controllers::{
     ApiHealthController,
     ApiNotificationController,
     ApiUserController,
+    global_options_handler,
     not_found_handler,
 };
 use http::{
@@ -144,6 +148,7 @@ async fn main() {
     let router = axum::Router::<()>::new()
         .merge(app_router)
         .route("/api/v1", get(|| async { Json(api) }))
+        .route("/{*path}", options(global_options_handler))
         .fallback(not_found_handler)
         .layer(cors)
         .layer(TraceLayer::new_for_http());
