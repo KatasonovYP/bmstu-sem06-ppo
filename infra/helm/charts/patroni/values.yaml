@@ -1,0 +1,14 @@
+meta:
+  name: patroni
+  namespace: patroni
+
+patroni:
+  image:
+    repository: cr.yandex/crpav8o4hj057l1dbgqa/the-qsb/stocks-tracker/patroni
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicas: 3
+  superuserPassword: "zalandodemo"
+  replicationPassword: "rep-pass"
+  storage:
+    size: 5Gi

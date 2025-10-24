@@ -53,3 +53,9 @@ async fn get_ping() -> Result<Json<PingResponse>, ApiError> {
 pub async fn not_found_handler() -> Result<Json<PingResponse>, ApiError> {
     Err(ApiError::NotFound("Path not exists".to_string()))
 }
+
+#[axum_macros::debug_handler]
+#[tracing::instrument(err(Debug), ret)]
+pub async fn global_options_handler() -> Result<Json<PingResponse>, ApiError> {
+    Err(ApiError::NoContent("Options".to_string()))
+}

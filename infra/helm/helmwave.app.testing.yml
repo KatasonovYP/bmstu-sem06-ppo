@@ -1,0 +1,32 @@
+project: stocks-tracker-testing
+version: 0.42.2
+
+.options: &options
+  create_namespace: true
+  wait: true
+  timeout: 1m
+  max_history: 3
+  atomic: true
+  context: the-qsb/stocks-tracker:main
+
+releases:
+
+  - name: patroni-testing
+    namespace: patroni
+    <<: *options
+    chart: ./infra/helm/charts/patroni
+    values:
+      - ./infra/helm/values/patroni-testing-values.yaml
+      # - src: ./infra/helm/values/patroni-testing-secrets.yaml
+      #   renderer: sops
+
+  - name: stocks-tracker-testing
+    namespace: stocks-tracker
+    <<: *options
+    chart: ./infra/helm/charts/stocks-tracker
+    depends_on:
+      - patroni-testing@patroni
+    values:
+      - ./infra/helm/values/stocks-tracker-testing-values.yaml
+      - src: ./infra/helm/values/stocks-tracker-testing-secrets.yaml
+        renderer: sops

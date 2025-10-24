@@ -1,0 +1,57 @@
+meta:
+  name: stocks-tracker-testing
+  namespace: stocks-tracker
+
+image:
+  repository: cr.yandex/crpav8o4hj057l1dbgqa/the-qsb/stocks-tracker
+  tag: latest
+  command: ["./app"]
+
+ingress:
+  api:
+    host: api.stocks-tracker.ru
+    path: /
+    mirror_path: /mirror
+  admin:
+    host: admin.stocks-tracker.ru
+    path: /
+
+port: 3000
+
+scaling:
+  minReplicas: 1
+  minRoReplicas: 2
+  maxReplicas: 1
+  averageUtilization: 70
+
+rollingUpdate:
+  maxUnavailable: 5
+  maxSurge: 5
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+redis:
+  replicas: 1
+  image:
+    repository: redis
+    tag: 7.0-alpine
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  storage:
+    size: 1Gi
+  # password: default-redis-password
+
+secret:
+  APP_REDIS_CONNECTION_STRING: "redis://default-redis-password@stocks-tracker-testing-redis-service:6379/0"
+  APP_POSTGRES_CONNECTION_STRING: "postgresql://postgres:default-postgres-password@stocks-tracker-testing-postgres-service:5432/stocks_tracker"

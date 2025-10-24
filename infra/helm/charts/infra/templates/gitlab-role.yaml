@@ -1,0 +1,23 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gitlab-default-sa-patroni-read
+  namespace: patroni   # Grant permissions in this namespace
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: gitlab   # The GitLab runner's namespace
+roleRef:
+  kind: Role
+  name: gitlab-patroni-read
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: gitlab-patroni-read
+  namespace: patroni
+rules:
+  - apiGroups: [""]
+    resources: ["serviceaccounts"]
+    verbs: ["get", "list"]

@@ -10,8 +10,8 @@ stages:
   - test
   - deploy-testing
   - test-e2e
-  - allure-report
   - deploy-production
+  - allure-report
 
 .aws-env: &aws-env
   AWS_DEFAULT_REGION: ru-central1
@@ -28,8 +28,9 @@ job-build-push-ci-images:
   parallel:
     matrix:
       - DOCKERFILE:
-        - builder
+        - backend-builder
         - reporter
+        - patroni
   script:
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"${CI_REGISTRY}\":{\"auth\":\"$(echo -n "json_key:${CI_REGISTRY_KEY}" | base64 | tr -d '\n' )\"}}}" > /kaniko/.docker/config.json
@@ -123,7 +124,7 @@ job-test-integration:
         - backend/tests
   script:
     - cd backend
-    - sops --decrypt ./config/app.secrets.production.yaml | yq '.secret | to_entries | .[] | "\(.key)=\"\(.value)\""' -rc > .env
+    - sops --decrypt ../infra/helm/values/stocks-tracker-testing-secrets.yaml | yq '.secret | to_entries | .[] | "\(.key)=\"\(.value)\""' -rc > .env
     - source .env
     - cargo nextest run --archive-file ./tests/integration.tar.zst --test-threads 1
     - mkdir allure-results
@@ -173,31 +174,15 @@ job-deploy-backend-testing:
     - job-push-backend
     - job-test-integration
   when: on_success
-  variables:
-    ENVIRONMENT_NAME: "testing"
-  environment: $ENVIRONMENT_NAME
-  image: alpine/k8s:1.30.12
+  image: diamon/helmwave:latest
   dependencies: []
-  cache:
-    - key: backend-tests
-      policy: pull
-      paths:
-        - backend/tests
-  before_script:
-    - helm plugin install https://github.com/jkroepke/helm-secrets --version v4.6.0
-    - apk add sops
+  cache: []
   script:
-    - kubectl config use-context ${CI_PROJECT_PATH}:yandex-cloud-k3s
-    - HELM_NAME="stocks-tracker-${CI_ENVIRONMENT_NAME}"
     - >-
-      helm secrets
-      -n stocks-tracker
-      upgrade ${HELM_NAME}-release ./infra/charts/stocks-tracker
-      --install
-      --atomic
-      --set "meta.name=${HELM_NAME}"
-      --set "image.tag=${CI_COMMIT_SHORT_SHA}"
-      -f backend/config/app.secrets.production.yaml
+      CI_COMMIT_TAG=$CI_COMMIT_SHORT_SHA
+      helmwave up
+      --build
+      -f infra/helm/helmwave.app.testing.yml
 
 job-test-e2e:
   stage: test-e2e
@@ -213,7 +198,7 @@ job-test-e2e:
         - backend/tests
   script:
     - cd backend
-    - sops --decrypt ./config/app.secrets.production.yaml | yq '.secret | to_entries | .[] | "\(.key)=\"\(.value)\""' -rc > .env
+    - sops --decrypt ../infra/helm/values/stocks-tracker-testing-secrets.yaml | yq '.secret | to_entries | .[] | "\(.key)=\"\(.value)\""' -rc > .env
     - source .env
     - cargo nextest run --archive-file ./tests/e2e.tar.zst --test-threads 1
     - mkdir allure-results
@@ -223,6 +208,21 @@ job-test-e2e:
       - ./backend/allure-results/e2e.xml
     reports:
       junit: ./backend/allure-results/e2e.xml
+
+job-deploy-backend-production:
+  stage: deploy-production
+  needs:
+    - job-test-e2e
+  when: on_success
+  image: diamon/helmwave:latest
+  dependencies: []
+  cache: []
+  script:
+    - >-
+      CI_COMMIT_TAG=$CI_COMMIT_SHORT_SHA
+      helmwave up
+      --build
+      -f infra/helm/helmwave.app.production.yml
 
 job-allure-report:
   stage: allure-report
@@ -288,27 +288,3 @@ job-deploy-frontend:
     changes:
       - frontend
       - docs
-
-# job-deploy-backend-production:
-#   stage: deploy-production
-#   needs:
-#     - job-push-backend
-#   when: on_success
-#   variables:
-#     ENVIRONMENT_NAME: "production"
-#   environment: $ENVIRONMENT_NAME
-#   image: alpine/k8s:1.30.12
-#   script:
-#     - kubectl config use-context ${CI_PROJECT_PATH}:yandex-cloud-k3s
-#     - HELM_NAME="stocks-tracker-${CI_ENVIRONMENT_NAME}"
-#     - >-
-#       helm
-#       -n stocks-tracker
-#       upgrade ${HELM_NAME}-release ./infra/charts/stocks-tracker
-#       --install
-#       --atomic
-#       --set "meta.name=${HELM_NAME}"
-#       --set "image.tag=${CI_COMMIT_SHORT_SHA}"
-#       --set "secret.APP_POSTGRES_CONNECTION_STRING=${APP_POSTGRES_CONNECTION_STRING}"
-#       --set "secret.APP_REDIS_CONNECTION_STRING=${APP_REDIS_CONNECTION_STRING}"
-#       --set "secret.APP_TELEGRAM_BOT_TOKEN=${APP_TELEGRAM_BOT_TOKEN}"
