@@ -18,16 +18,8 @@ impl MigrationTrait for Migration {
                             .auto_increment()
                             .primary_key(),
                     )
-                    .col(
-                        ColumnDef::new(Actives::UserId)
-                            .integer()
-                            .not_null()
-                    )
-                    .col(
-                        ColumnDef::new(Actives::SecurityId)
-                            .string()
-                            .not_null()
-                    )
+                    .col(ColumnDef::new(Actives::UserId).integer().not_null())
+                    .col(ColumnDef::new(Actives::SecurityId).string().not_null())
                     .col(ColumnDef::new(Actives::BoughtPrice).double().not_null())
                     .col(ColumnDef::new(Actives::Currency).string().not_null())
                     .col(ColumnDef::new(Actives::Count).integer().not_null())

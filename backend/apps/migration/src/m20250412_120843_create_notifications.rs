@@ -34,11 +34,7 @@ impl MigrationTrait for Migration {
                             .double()
                             .not_null(),
                     )
-                    .col(
-                        ColumnDef::new(Notifications::LimitType)
-                            .string()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(Notifications::LimitType).string().not_null())
                     .col(
                         ColumnDef::new(Notifications::ResendIntervalSec)
                             .integer()

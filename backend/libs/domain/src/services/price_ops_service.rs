@@ -62,10 +62,7 @@ impl AbstractPriceOpsService for PriceOpsService {
     }
 
     async fn get_security_current_price(&self, security_id: &str) -> Result<Price, DomainError> {
-        let trades = self
-            .exchange_repository
-            .get_trades(security_id)
-            .await?;
+        let trades = self.exchange_repository.get_trades(security_id).await?;
 
         let security_current_price = trades
             .first()

@@ -118,12 +118,12 @@ impl From<SentEntity> for sent::ActiveModel {
     }
 }
 
-
 #[cfg(not(feature = "production"))]
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;
 
+    use chrono::NaiveDateTime;
     use domain::{
         errors::DomainError,
         models::SentEntity,
@@ -133,7 +133,7 @@ mod tests {
         DatabaseBackend,
         MockDatabase,
     };
-    use chrono::{NaiveDateTime};
+
     use crate::postgres::{
         PostgresSentRepository,
         connection::PostgresConnectionPool,
@@ -258,10 +258,7 @@ mod tests {
         let repo = PostgresSentRepository { db: Arc::new(pool) };
 
         let got = repo.list_sent().await.unwrap();
-        assert_eq!(
-            got,
-            vec![SentEntity::from(sm1), SentEntity::from(sm2)]
-        );
+        assert_eq!(got, vec![SentEntity::from(sm1), SentEntity::from(sm2)]);
     }
 
     #[tokio::test]
@@ -350,7 +347,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_sent_not_found() {
-
         let empty: Vec<sent::Model> = vec![];
         let connection = MockDatabase::new(DatabaseBackend::Postgres)
             .append_query_results([empty])

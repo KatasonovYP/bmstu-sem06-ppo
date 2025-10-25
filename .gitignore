@@ -5,3 +5,4 @@
 **/.openapi-generator
 **/.helmwave
 key.txt
+**/allure-report

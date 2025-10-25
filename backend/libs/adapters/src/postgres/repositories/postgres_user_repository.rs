@@ -153,7 +153,10 @@ mod tests {
         ports::storage::UserRepository,
         value_objects::Username,
     };
-    use sea_orm::{DatabaseBackend, MockDatabase};
+    use sea_orm::{
+        DatabaseBackend,
+        MockDatabase,
+    };
 
     use crate::postgres::{
         PostgresUserRepository,

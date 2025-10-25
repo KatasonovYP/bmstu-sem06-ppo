@@ -163,11 +163,10 @@ mod tests {
     use std::sync::Arc;
 
     use domain::{
+        errors::DomainError,
         models::NotificationEntity,
         ports::storage::NotificationRepository,
-        errors::DomainError,
     };
-
     use sea_orm::{
         DatabaseBackend,
         MockDatabase,
@@ -197,7 +196,10 @@ mod tests {
         let pool = PostgresConnectionPool::new(Arc::new(connection));
         let repo = PostgresNotificationRepository { db: Arc::new(pool) };
 
-        let notif = repo.create_notification(notif_entity.clone()).await.unwrap();
+        let notif = repo
+            .create_notification(notif_entity.clone())
+            .await
+            .unwrap();
         assert_eq!(notif, NotificationEntity::from(notif_model));
     }
 
@@ -258,7 +260,7 @@ mod tests {
             Err(DomainError::EntityNotFound { entity, id }) => {
                 assert_eq!(entity, "Notification");
                 assert_eq!(id, "99");
-            }
+            },
             _ => panic!("Expected EntityNotFound error"),
         }
     }
@@ -284,10 +286,7 @@ mod tests {
         let got = repo.list_notifications().await.unwrap();
         assert_eq!(
             got,
-            vec![
-                NotificationEntity::from(nm1),
-                NotificationEntity::from(nm2),
-            ]
+            vec![NotificationEntity::from(nm1), NotificationEntity::from(nm2),]
         );
     }
 
@@ -329,10 +328,7 @@ mod tests {
         let repo = PostgresNotificationRepository { db: Arc::new(pool) };
 
         let res = repo.list_active_notifications(22).await.unwrap();
-        assert_eq!(
-            res,
-            vec![NotificationEntity::from(nm1)]
-        );
+        assert_eq!(res, vec![NotificationEntity::from(nm1)]);
     }
 
     #[tokio::test]
@@ -371,7 +367,10 @@ mod tests {
         let pool = PostgresConnectionPool::new(Arc::new(connection));
         let repo = PostgresNotificationRepository { db: Arc::new(pool) };
 
-        let result = repo.update_notification(notif_entity.clone()).await.unwrap();
+        let result = repo
+            .update_notification(notif_entity.clone())
+            .await
+            .unwrap();
         assert_eq!(result, NotificationEntity::from(notif_model));
     }
 
@@ -397,7 +396,7 @@ mod tests {
                     msg.contains("update error") || !msg.is_empty(),
                     "RepositoryError message: {msg}"
                 );
-            }
+            },
             _ => panic!("Expected RepositoryError"),
         }
     }
