@@ -87,7 +87,10 @@ async fn list_active_notifications(
     State(controller): State<Arc<ApiNotificationController>>,
     Path(active_id): Path<u32>,
 ) -> Result<Json<Vec<NotificationResponse>>, ApiError> {
-    let notifications = controller.notification_service.list_active_notifications(active_id).await?;
+    let notifications = controller
+        .notification_service
+        .list_active_notifications(active_id)
+        .await?;
 
     let result = notifications
         .into_iter()

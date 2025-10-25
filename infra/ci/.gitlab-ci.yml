@@ -37,8 +37,8 @@ job-build-push-ci-images:
     - >-
       /kaniko/executor
       --context "${CI_PROJECT_DIR}"
-      --dockerfile "${CI_PROJECT_DIR}/infra/ci/$DOCKERFILE.Dockerfile"
-      --destination "${CI_REGISTRY}/${CI_PROJECT_PATH}/$DOCKERFILE:latest"
+      --dockerfile "${CI_PROJECT_DIR}/infra/ci/${DOCKERFILE}.Dockerfile"
+      --destination "${CI_REGISTRY}/${CI_PROJECT_PATH}/${DOCKERFILE}:latest"
   only:
     changes:
       - ./infra/ci/*.Dockerfile
@@ -72,18 +72,44 @@ job-build-backend:
       policy: push
       paths:
         - backend/tests
+        - backend/allure-results
   before_script:
+    - apt install xmlstarlet -y
     - sccache --version
     - sccache --start-server
     - cd backend
   script:
     - cargo +nightly build --release --all-targets
-    - mkdir ./bin
-    - find ./target/$CARGO_BUILD_TARGET/release -maxdepth 1 -type f -executable | xargs -I '{}' mv {} ./bin
-    - mkdir ./tests
+    - mkdir -p ./bin
+    - find ./target/${CARGO_BUILD_TARGET}/release -maxdepth 1 -type f -executable | xargs -I '{}' mv {} ./bin
+    - mkdir -p ./tests
+    # пакуем исполняемые файлы тестов в архивы, чтобы передать их в следующие задачи
     - cargo nextest archive --release --lib --archive-file ./tests/unit.tar.zst
     - cargo nextest archive --release --test "*it*" --archive-file ./tests/integration.tar.zst
     - cargo nextest archive --release --test "*e2e*" --archive-file ./tests/e2e.tar.zst
+    # тут костыль с заполнением тестов тегом skipped
+    - mkdir -p ./allure-results
+    - cargo nextest run --release --lib --nff --no-capture || true
+    - >-
+      xmlstarlet ed -L -P 
+      -s '//testcase' -t elem -n skipped -v ''
+      -d '//failure'
+      ./target/nextest/default/junit.xml
+    - mv ./target/nextest/default/junit.xml ./allure-results/unit.xml
+    - cargo nextest run --release --test "*it*" --nff --no-capture || true
+    - >-
+      xmlstarlet ed -L -P 
+      -s '//testcase' -t elem -n skipped -v ''
+      -d '//failure'
+      ./target/nextest/default/junit.xml
+    - mv ./target/nextest/default/junit.xml ./allure-results/integration.xml
+    - cargo nextest run --release --test "*e2e*" --nff --no-capture || true
+    - >-
+      xmlstarlet ed -L -P 
+      -s '//testcase' -t elem -n skipped -v ''
+      -d '//failure'
+      ./target/nextest/default/junit.xml
+    - mv ./target/nextest/default/junit.xml ./allure-results/e2e.xml
   after_script:
     - sccache --show-stats
 
@@ -101,14 +127,14 @@ job-test-unit:
         - backend/tests
   script:
     - cd backend
-    - cargo nextest run --archive-file ./tests/unit.tar.zst
-    - mkdir allure-results
-    - mv ./target/nextest/default/junit.xml ./allure-results/unit.xml
+    - cargo nextest run --nff --no-capture --archive-file ./tests/unit.tar.zst
+  after_script:
+    - mkdir -p ./backend/allure-results
+    - mv ./backend/target/nextest/default/junit.xml ./backend/allure-results/unit.xml
   artifacts:
+    when: always
     paths:
       - ./backend/allure-results/unit.xml
-    reports:
-      junit: ./backend/allure-results/unit.xml
 
 job-test-integration:
   stage: test
@@ -126,14 +152,14 @@ job-test-integration:
     - cd backend
     - sops --decrypt ../infra/helm/values/stocks-tracker-testing-secrets.yaml | yq '.secret | to_entries | .[] | "\(.key)=\"\(.value)\""' -rc > .env
     - source .env
-    - cargo nextest run --archive-file ./tests/integration.tar.zst --test-threads 1
-    - mkdir allure-results
-    - mv ./target/nextest/default/junit.xml ./allure-results/integration.xml
+    - cargo nextest run --nff --no-capture --archive-file ./tests/integration.tar.zst --test-threads 1
+  after_script:
+    - mkdir -p ./backend/allure-results
+    - mv ./backend/target/nextest/default/junit.xml ./backend/allure-results/integration.xml
   artifacts:
+    when: always
     paths:
       - ./backend/allure-results/integration.xml
-    reports:
-      junit: ./backend/allure-results/integration.xml
 
 job-push-backend:
   stage: build
@@ -179,7 +205,7 @@ job-deploy-backend-testing:
   cache: []
   script:
     - >-
-      CI_COMMIT_TAG=$CI_COMMIT_SHORT_SHA
+      CI_COMMIT_TAG="${CI_COMMIT_SHORT_SHA}"
       helmwave up
       --build
       -f infra/helm/helmwave.app.testing.yml
@@ -200,14 +226,14 @@ job-test-e2e:
     - cd backend
     - sops --decrypt ../infra/helm/values/stocks-tracker-testing-secrets.yaml | yq '.secret | to_entries | .[] | "\(.key)=\"\(.value)\""' -rc > .env
     - source .env
-    - cargo nextest run --archive-file ./tests/e2e.tar.zst --test-threads 1
-    - mkdir allure-results
-    - mv ./target/nextest/default/junit.xml ./allure-results/e2e.xml
+    - cargo nextest run --nff --no-capture --archive-file ./tests/e2e.tar.zst --test-threads 1
+  after_script:
+    - mkdir -p ./backend/allure-results
+    - mv ./backend/target/nextest/default/junit.xml ./backend/allure-results/e2e.xml
   artifacts:
+    when: always
     paths:
       - ./backend/allure-results/e2e.xml
-    reports:
-      junit: ./backend/allure-results/e2e.xml
 
 job-deploy-backend-production:
   stage: deploy-production
@@ -219,7 +245,7 @@ job-deploy-backend-production:
   cache: []
   script:
     - >-
-      CI_COMMIT_TAG=$CI_COMMIT_SHORT_SHA
+      CI_COMMIT_TAG="${CI_COMMIT_SHORT_SHA}"
       helmwave up
       --build
       -f infra/helm/helmwave.app.production.yml
@@ -233,16 +259,68 @@ job-allure-report:
     - job-test-unit
     - job-test-integration
     - job-test-e2e
-  cache: []
+  cache:
+    - key: backend-tests
+      policy: pull
+      paths:
+        - backend/allure-results
   image: cr.yandex/crpav8o4hj057l1dbgqa/the-qsb/stocks-tracker/reporter:latest
   script:
-    - aws s3 sync s3://$S3_BUCKET/$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME/history ./backend/allure-results/history
-    - allure generate -c ./backend/allure-results -o ./backend/allure-report
-    - aws s3 sync ./backend/allure-report s3://$S3_BUCKET/$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME
-    - echo "https://$S3_BUCKET/$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME"
+    - aws s3 sync s3://${S3_BUCKET}/${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME}/latest/history ./backend/allure-results/history
+    - export BUILD_ORDER=$(aws s3 ls s3://${S3_BUCKET}/${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME}/ | wc -l)
+    - |
+      cat <<EOF > ./backend/allure-results/environment.properties
+      branch=${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME}
+      build_number=${CI_PIPELINE_ID}
+      EOF
+    - |
+      cat <<EOF > ./backend/allure-results/executor.json
+      {
+        "name": "${CI_RUNNER_ID}",
+        "type": "gitlab",
+        "buildUrl": "${CI_PIPELINE_URL}",
+        "buildOrder": ${BUILD_ORDER},
+        "buildName": "${CI_COMMIT_TITLE}",
+        "reportUrl": "https://${S3_BUCKET}/${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME}/${CI_COMMIT_SHORT_SHA}"
+      }
+      EOF
+    - ls backend/allure-results -la
+    - cat ./backend/allure-results/executor.json
+    - >-
+      xmlstarlet ed -L -P 
+      -i '/testsuites/testsuite[not(@timestamp)]'
+      -t attr -n timestamp
+      -v "$(xmlstarlet sel -t -v '/testsuites/@timestamp' ./backend/allure-results/unit.xml)"
+      ./backend/allure-results/unit.xml
+    - >-
+      xmlstarlet ed -L -P 
+      -i '/testsuites/testsuite[not(@timestamp)]'
+      -t attr -n timestamp
+      -v "$(xmlstarlet sel -t -v '/testsuites/@timestamp' ./backend/allure-results/integration.xml)"
+      ./backend/allure-results/integration.xml
+    - >-
+      xmlstarlet ed -L -P 
+      -i '/testsuites/testsuite[not(@timestamp)]'
+      -t attr -n timestamp
+      -v "$(xmlstarlet sel -t -v '/testsuites/@timestamp' ./backend/allure-results/e2e.xml)"
+      ./backend/allure-results/e2e.xml
+    - allure --version
+    - allure --verbose generate -c ./backend/allure-results -o ./backend/allure-report
+    - >-
+      aws s3 sync 
+      ./backend/allure-report
+      s3://${S3_BUCKET}/${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME}/latest
+    - >-
+      aws s3 sync 
+      ./backend/allure-report
+      s3://${S3_BUCKET}/${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME}/${CI_COMMIT_SHORT_SHA}
+    - cat ./backend/allure-report/widgets/executors.json
+    - echo "https://${S3_BUCKET}/${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME}/latest"
   artifacts:
     paths:
       - ./backend/allure-report
+    reports:
+      junit: ./backend/allure-results/*.xml
 
 job-build-frontend:
   stage: build
@@ -283,7 +361,7 @@ job-deploy-frontend:
     entrypoint: ["/usr/bin/env"]
   script:
     - >-
-      aws s3 sync ./frontend/dist/apps/app $S3_BUCKET
+      aws s3 sync ./frontend/dist/apps/app ${S3_BUCKET}
   only:
     changes:
       - frontend
