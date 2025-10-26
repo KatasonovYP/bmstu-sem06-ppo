@@ -2,7 +2,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ .Values.meta.name }}-monitoring-ingress
-  namespace: loki
+  namespace: prometeus
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
@@ -21,6 +21,6 @@ spec:
             path: {{ .Values.ingress.monitoring.path }}
             backend:
               service:
-                name: loki-grafana
+                name: prometheus-stack-grafana
                 port:
                   number: 80
