@@ -6,6 +6,8 @@ repositories:
     url: https://charts.gitlab.io/
   - name: grafana
     url: https://grafana.github.io/helm-charts
+  - name: prometheus-community
+    url: https://prometheus-community.github.io/helm-charts
 
 .options: &options
   create_namespace: true
@@ -39,14 +41,13 @@ releases:
       - src: infra/helm/values/gitlab-runner-secrets.yaml
         renderer: sops
 
-  - name: loki-grafana
-    namespace: loki
+  - name: prometheus-stack
+    namespace: prometeus
     <<: *options
     chart:
-      name: grafana/grafana
-      version: 10.1.2
+      name: prometheus-community/kube-prometheus-stack
     values:
-      - src: infra/helm/values/loki-grafana-secrets.yaml
+      - src: infra/helm/values/prometeus-grafana-secrets.yaml
         renderer: sops
 
   - name: loki-stack
