@@ -7,16 +7,18 @@ api_cors_origins:
   - http://localhost:5500
   - https://stocks-tracker.ru
   - https://cdn.stocks-tracker.ru
-  - https://stocks-tracker.serveo.net
-  - https://stocks-tracker.ru.website.yandexcloud.net
   - https://swagger.stocks-tracker.ru
 api_server_port: 3000
 moex_base_url: https://iss.moex.com
-local_admin: false
-postgres_connection_string: set this var via .env
+admin_static_s3_bucket: static.admin.stocks-tracker.ru
+posrgres_user: postgres
+postgres_password: set this var via .env
+postgres_host: localhost
+postgres_port: 5432
+postgres_database: postgres
+admin_user_login: demo@sea-ql.org
+admin_user_pid: 79a6243b-088d-5d95-9b16-a2d1689e291f
+admin_user_password: set this var via .env
+admin_user_token: set this var via .env
 redis_connection_string: set this var via .env
 telegram_bot_token: set this var via .env
-admin_user_login: set this var via .env
-admin_user_password: set this var via .env
-admin_user_pid: set this var via .env
-admin_user_token: set this var via .env

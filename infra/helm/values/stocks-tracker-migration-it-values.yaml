@@ -1,0 +1,12 @@
+meta:
+  name: stocks-tracker-migration-it-{{ env "CI_ENVIRONMENT_NAME" }}
+
+image:
+  tag: '{{ env "CI_ENVIRONMENT_NAME" }}'
+  command: ["./app", "refresh", "--database-url"]
+
+env:
+    APP_POSTGRES_USER: postgres
+    APP_POSTGRES_HOST: patroni-it-{{ env "CI_ENVIRONMENT_NAME" }}.patroni.svc
+    APP_POSTGRES_PORT: '5432'
+    APP_POSTGRES_DATABASE: postgres

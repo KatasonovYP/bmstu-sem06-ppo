@@ -16,9 +16,9 @@ use crate::{
 pub trait AbstractUserService: Interface + Send + Sync + 'static {
     async fn get_user(&self, user_id: u32) -> Result<UserEntity, DomainError>;
     async fn get_user_by_tg_id(&self, tg_id: i64) -> Result<UserEntity, DomainError>;
-    async fn create_user(&self, user: UserEntity) -> Result<UserEntity, DomainError>;
+    async fn create_user(&self, user: &UserEntity) -> Result<UserEntity, DomainError>;
     async fn list_users(&self) -> Result<Vec<UserEntity>, DomainError>;
-    async fn update_user(&self, user: UserEntity) -> Result<UserEntity, DomainError>;
+    async fn update_user(&self, user: &UserEntity) -> Result<UserEntity, DomainError>;
     async fn delete_user(&self, user_id: u32) -> Result<UserEntity, DomainError>;
 }
 
@@ -26,10 +26,10 @@ pub trait AbstractUserService: Interface + Send + Sync + 'static {
 #[async_trait::async_trait]
 pub trait AbstractActiveService: Interface + Send + Sync + 'static {
     async fn get_active(&self, active_id: u32) -> Result<ActiveEntity, DomainError>;
-    async fn create_active(&self, active: ActiveEntity) -> Result<ActiveEntity, DomainError>;
+    async fn create_active(&self, active: &ActiveEntity) -> Result<ActiveEntity, DomainError>;
     async fn list_actives(&self) -> Result<Vec<ActiveEntity>, DomainError>;
     async fn list_user_actives(&self, user_id: u32) -> Result<Vec<ActiveEntity>, DomainError>;
-    async fn update_active(&self, active: ActiveEntity) -> Result<ActiveEntity, DomainError>;
+    async fn update_active(&self, active: &ActiveEntity) -> Result<ActiveEntity, DomainError>;
     async fn delete_active(&self, active_id: u32) -> Result<ActiveEntity, DomainError>;
     async fn sum_user_actives_bought_price(&self, user_id: u32) -> Result<Price, DomainError>;
     async fn sum_user_actives_current_price(&self, user_id: u32) -> Result<Price, DomainError>;
@@ -49,11 +49,11 @@ pub trait AbstractNotificationService: Interface + Send + Sync + 'static {
     ) -> Result<Vec<NotificationEntity>, DomainError>;
     async fn create_notification(
         &self,
-        notification: NotificationEntity,
+        notification: &NotificationEntity,
     ) -> Result<NotificationEntity, DomainError>;
     async fn update_notification(
         &self,
-        notification: NotificationEntity,
+        notification: &NotificationEntity,
     ) -> Result<NotificationEntity, DomainError>;
     async fn delete_notification(
         &self,
@@ -65,9 +65,9 @@ pub trait AbstractNotificationService: Interface + Send + Sync + 'static {
 #[async_trait::async_trait]
 pub trait AbstractSentService: Interface + Send + Sync + 'static {
     async fn get_sent(&self, notification_id: u32) -> Result<SentEntity, DomainError>;
-    async fn create_sent(&self, sent: SentEntity) -> Result<SentEntity, DomainError>;
+    async fn create_sent(&self, sent: &SentEntity) -> Result<SentEntity, DomainError>;
     async fn list_sent(&self) -> Result<Vec<SentEntity>, DomainError>;
-    async fn update_sent(&self, sent: SentEntity) -> Result<SentEntity, DomainError>;
+    async fn update_sent(&self, sent: &SentEntity) -> Result<SentEntity, DomainError>;
     async fn delete_sent(&self, notification_id: u32) -> Result<SentEntity, DomainError>;
 }
 

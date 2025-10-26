@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-#[derive(Clone, Error, Debug)]
+#[derive(Clone, Error, Debug, PartialEq)]
 pub enum DomainError {
     #[error("Validation error: {0}")]
     ValidationError(String),

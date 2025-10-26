@@ -1,0 +1,9 @@
+meta:
+  name: stocks-tracker-testing
+  namespace: stocks-tracker
+
+image:
+  repository: cr.yandex/crpav8o4hj057l1dbgqa/the-qsb/stocks-tracker
+  tag: latest
+  command: ["./app", "up", "--database-url"]
+  args: ["postgres://$(APP_POSTGRES_USER):$(APP_POSTGRES_PASSWORD)@$(APP_POSTGRES_HOST):$(APP_POSTGRES_PORT)/$(APP_POSTGRES_DATABASE)"]

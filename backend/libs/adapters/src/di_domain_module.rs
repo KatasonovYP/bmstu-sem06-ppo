@@ -103,7 +103,7 @@ pub async fn di_domain_module(settings: Settings) -> DomainModule {
     tracing::debug!("{settings:?}");
 
     let postgres_connection_pool =
-        PostgresConnectionPool::new_connection_pool(settings.postgres_connection_string)
+        PostgresConnectionPool::new_connection_pool(settings.build_postgres_connection_string())
             .await
             .unwrap();
 

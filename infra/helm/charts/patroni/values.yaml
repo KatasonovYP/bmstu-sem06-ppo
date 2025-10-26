@@ -8,7 +8,14 @@ patroni:
     tag: latest
     pullPolicy: IfNotPresent
   replicas: 3
-  superuserPassword: "zalandodemo"
-  replicationPassword: "rep-pass"
   storage:
-    size: 5Gi
+    size: 1Gi
+
+env:
+    APP_POSTGRES_USER: postgres
+    APP_POSTGRES_PORT: '5432'
+    APP_POSTGRES_DATABASE: postgres
+
+secret:
+    APP_POSTGRES_PASSWORD: zalandodemo
+    APP_POSTGRES_PASSWORD_REPLICATION: rep-pass

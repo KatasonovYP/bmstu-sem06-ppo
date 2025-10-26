@@ -41,7 +41,7 @@ impl AbstractNotificationService for NotificationService {
     #[tracing::instrument(skip(self), err(Debug), ret)]
     async fn create_notification(
         &self,
-        notification: NotificationEntity,
+        notification: &NotificationEntity,
     ) -> Result<NotificationEntity, DomainError> {
         self.notification_repository
             .create_notification(notification)
@@ -66,7 +66,7 @@ impl AbstractNotificationService for NotificationService {
     #[tracing::instrument(skip(self), err(Debug), ret)]
     async fn update_notification(
         &self,
-        notification: NotificationEntity,
+        notification: &NotificationEntity,
     ) -> Result<NotificationEntity, DomainError> {
         self.notification_repository
             .update_notification(notification)
@@ -179,7 +179,7 @@ mod tests {
         let service = setup_service(Arc::new(repo));
 
         // Act
-        let result = service.create_notification(notification).await;
+        let result = service.create_notification(&notification).await;
 
         // Assert
         assert!(result.is_ok());
@@ -203,7 +203,7 @@ mod tests {
         let service = setup_service(Arc::new(repo));
 
         // Act
-        let result = service.create_notification(notification).await;
+        let result = service.create_notification(&notification).await;
 
         // Assert
         assert!(result.is_err());

@@ -42,8 +42,8 @@ impl SentRepository for PostgresSentRepository {
     }
 
     #[tracing::instrument(level = "trace", skip(self), err(Debug), ret)]
-    async fn create_sent(&self, sent: SentEntity) -> Result<SentEntity, DomainError> {
-        Sent::insert(sent::ActiveModel::from(sent))
+    async fn create_sent(&self, sent: &SentEntity) -> Result<SentEntity, DomainError> {
+        Sent::insert(sent::ActiveModel::from(sent.clone()))
             .exec_with_returning(self.db.get_connection().await.as_ref())
             .await
             .map(SentEntity::from)
@@ -52,7 +52,7 @@ impl SentRepository for PostgresSentRepository {
 
     #[tracing::instrument(level = "trace", skip(self), err(Debug), ret)]
     async fn create_sent_now(&self, notification_id: u32) -> Result<SentEntity, DomainError> {
-        self.create_sent(SentEntity {
+        self.create_sent(&SentEntity {
             notification_id,
             last_message_time: chrono::Utc::now().naive_utc(),
         })
@@ -71,8 +71,8 @@ impl SentRepository for PostgresSentRepository {
     }
 
     #[tracing::instrument(level = "trace", skip(self), err(Debug), ret)]
-    async fn update_sent(&self, sent: SentEntity) -> Result<SentEntity, DomainError> {
-        Sent::update(sent::ActiveModel::from(sent))
+    async fn update_sent(&self, sent: &SentEntity) -> Result<SentEntity, DomainError> {
+        Sent::update(sent::ActiveModel::from(sent.clone()))
             .exec(self.db.get_connection().await.as_ref())
             .await
             .map(SentEntity::from)
@@ -172,7 +172,7 @@ mod tests {
         let pool = PostgresConnectionPool::new(Arc::new(connection));
         let repo = PostgresSentRepository { db: Arc::new(pool) };
 
-        let result = repo.create_sent(sent_entity.clone()).await.unwrap();
+        let result = repo.create_sent(&sent_entity).await.unwrap();
 
         assert_eq!(result, entity(42));
     }
@@ -190,7 +190,7 @@ mod tests {
         let pool = PostgresConnectionPool::new(Arc::new(connection));
         let repo = PostgresSentRepository { db: Arc::new(pool) };
 
-        let result = repo.create_sent(sent_entity).await;
+        let result = repo.create_sent(&sent_entity).await;
         assert!(result.is_err());
 
         match result {
@@ -289,7 +289,7 @@ mod tests {
         let pool = PostgresConnectionPool::new(Arc::new(connection));
         let repo = PostgresSentRepository { db: Arc::new(pool) };
 
-        let result = repo.update_sent(sent_entity).await.unwrap();
+        let result = repo.update_sent(&sent_entity).await.unwrap();
 
         assert_eq!(result, SentEntity::from(sent_model));
     }

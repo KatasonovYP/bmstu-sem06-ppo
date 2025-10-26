@@ -28,7 +28,7 @@ impl CliNotificationController {
     pub async fn create_notification(&self, command: &NotificationCommands) {
         let entity = NotificationEntity::try_from(command).unwrap();
         self.notification_service
-            .create_notification(entity)
+            .create_notification(&entity)
             .await
             .unwrap();
     }
@@ -36,7 +36,7 @@ impl CliNotificationController {
     pub async fn update_notification(&self, command: &NotificationCommands) {
         let entity = NotificationEntity::try_from(command).unwrap();
         self.notification_service
-            .update_notification(entity)
+            .update_notification(&entity)
             .await
             .unwrap();
     }

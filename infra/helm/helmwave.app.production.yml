@@ -16,16 +16,38 @@ releases:
     <<: *options
     chart: ./infra/helm/charts/patroni
     values:
+      - ./infra/helm/values/stocks-tracker-production-values.yaml
+      - src: ./infra/helm/values/stocks-tracker-production-secrets.yaml
+        renderer: sops
       - ./infra/helm/values/patroni-production-values.yaml
-      # - src: ./infra/helm/values/patroni-production-secrets.yaml
-      #   renderer: sops
 
-  - name: stocks-tracker-production
+  - name: stocks-tracker-production-env
     namespace: stocks-tracker
     <<: *options
-    chart: ./infra/helm/charts/stocks-tracker
+    chart: ./infra/helm/charts/stocks-tracker-env
+    values:
+      - ./infra/helm/values/stocks-tracker-production-values.yaml
+      - src: ./infra/helm/values/stocks-tracker-production-secrets.yaml
+        renderer: sops
+
+  - name: stocks-tracker-production-migration
+    namespace: stocks-tracker
+    <<: *options
+    chart: ./infra/helm/charts/stocks-tracker-migration
     depends_on:
+      - stocks-tracker-production-env@stocks-tracker
       - patroni-production@patroni
+    values:
+      - ./infra/helm/values/stocks-tracker-production-values.yaml
+      - src: ./infra/helm/values/stocks-tracker-production-secrets.yaml
+        renderer: sops
+
+  - name: stocks-tracker-production-app
+    namespace: stocks-tracker
+    <<: *options
+    chart: ./infra/helm/charts/stocks-tracker-app
+    depends_on:
+      - stocks-tracker-production-migration@stocks-tracker
     values:
       - ./infra/helm/values/stocks-tracker-production-values.yaml
       - src: ./infra/helm/values/stocks-tracker-production-secrets.yaml

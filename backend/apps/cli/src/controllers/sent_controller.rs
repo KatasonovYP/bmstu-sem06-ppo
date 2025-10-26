@@ -22,12 +22,12 @@ impl CliSentController {
 
     pub async fn create_sent(&self, command: &SentCommands) {
         let entity = SentEntity::try_from(command).unwrap();
-        self.sent_service.create_sent(entity).await.unwrap();
+        self.sent_service.create_sent(&entity).await.unwrap();
     }
 
     pub async fn update_sent(&self, command: &SentCommands) {
         let entity = SentEntity::try_from(command).unwrap();
-        self.sent_service.update_sent(entity).await.unwrap();
+        self.sent_service.update_sent(&entity).await.unwrap();
     }
 
     pub async fn list_sent(&self) {

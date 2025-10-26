@@ -68,7 +68,7 @@ spec:
             - name: PATRONI_KUBERNETES_LABELS
               value: "{application: {{ .Values.meta.name }}, cluster-name: {{ .Values.meta.name }}}"
             - name: PATRONI_SUPERUSER_USERNAME
-              value: postgres
+              value: {{ .Values.env.APP_POSTGRES_USER }}
             - name: PATRONI_SUPERUSER_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -169,8 +169,8 @@ metadata:
     helmwave.app/skip-diff: "true"
 type: Opaque
 data:
-  superuser-password: {{ .Values.patroni.superuserPassword | b64enc | quote }}
-  replication-password: {{ .Values.patroni.replicationPassword | b64enc | quote }}
+  superuser-password: {{ .Values.secret.APP_POSTGRES_PASSWORD | b64enc | quote }}
+  replication-password: {{ .Values.secret.APP_POSTGRES_PASSWORD_REPLICATION | b64enc | quote }}
 
 ---
 apiVersion: v1

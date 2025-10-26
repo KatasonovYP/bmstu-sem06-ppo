@@ -57,7 +57,7 @@ releases:
     values:
       - infra/helm/values/loki-stack-values.yaml
 
-  - name: infra
-    namespace: infra
+  - name: stocks-tracker-side-infra
+    namespace: stocks-tracker
     <<: *options
-    chart: ./infra/helm/charts/infra
+    chart: ./infra/helm/charts/stocks-tracker-side-infra

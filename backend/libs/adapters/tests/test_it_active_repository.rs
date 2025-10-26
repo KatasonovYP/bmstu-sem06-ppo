@@ -1,94 +1,353 @@
-use std::sync::Arc;
+#[path = "./utils.rs"]
+mod utils;
 
-use adapters::{
-    di_domain_module::di_domain_module,
-    settings::Settings,
-};
 use domain::{
     errors::DomainError,
-    models::{
-        ActiveEntity,
-        UserEntity,
-    },
-    ports::storage::{
-        ActiveRepository,
-        UserRepository,
-    },
+    models::ActiveEntity,
 };
 use fake::{
     Fake,
     Faker,
 };
-use shaku::HasComponent;
+use utils::TestManager;
 
-#[tokio::test]
-async fn test_it_active_repository() {
-    let settings = Settings::new("../../config/app.default.yaml").unwrap();
-    let module = di_domain_module(settings).await;
-    let active_repo: Arc<dyn ActiveRepository> = module.resolve();
-    let user_repo: Arc<dyn UserRepository> = module.resolve();
+#[tokio::test(flavor = "multi_thread")]
+async fn test_it_create_active_success() {
+    // Arrange
+    let tm = TestManager::default().await;
+    // Act
+    let expected_active = ActiveEntity {
+        user_id: tm
+            .user_repo
+            .create_user(&Faker.fake())
+            .await
+            .unwrap()
+            .user_id,
+        ..Faker.fake()
+    };
 
-    let users_on_start_test = user_repo.list_users().await.unwrap();
-    let actives_on_start_test = active_repo.list_actives().await.unwrap();
-
-    let test_user: UserEntity = Faker.fake();
-    let result_user = user_repo.create_user(test_user.clone()).await.unwrap();
-    let mut test_active: ActiveEntity = Faker.fake();
-    test_active.user_id = result_user.user_id;
-
-    let result_active = active_repo
-        .create_active(test_active.clone())
+    let result_active = tm
+        .active_repo
+        .create_active(&expected_active)
         .await
         .unwrap();
-    test_active.active_id = result_active.active_id;
 
-    let wrong_active: ActiveEntity = Faker.fake();
-
-    let mut expected_active = test_active.clone();
-    expected_active.active_id = result_active.active_id;
+    // Assert
     assert_eq!(result_active, expected_active);
+}
 
-    let mut updated_test_active: ActiveEntity = Faker.fake();
-    updated_test_active.active_id = result_active.active_id;
-    updated_test_active.user_id = result_active.user_id;
-    let expected_updated_active = updated_test_active.clone();
+#[tokio::test(flavor = "multi_thread")]
+async fn test_it_create_active_error() {
+    // Arrange
+    let tm = TestManager::default().await;
+    // Act
+    let active_error = tm
+        .active_repo
+        .create_active(&Faker.fake())
+        .await
+        .unwrap_err();
 
-    let result_active = active_repo
-        .get_active(result_active.active_id)
+    // Assert
+    match active_error {
+        DomainError::RepositoryError(msg) => {
+            assert!(msg.contains("violates foreign key constraint"))
+        },
+        _ => panic!("Expected RepositoryError"),
+    }
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn test_it_get_active_success() {
+    // Arrange
+    let tm = TestManager::default().await;
+
+    // Act
+    let expected_active = ActiveEntity {
+        user_id: tm
+            .user_repo
+            .create_user(&Faker.fake())
+            .await
+            .unwrap()
+            .user_id,
+        ..Faker.fake()
+    };
+
+    let created_active = tm
+        .active_repo
+        .create_active(&expected_active)
         .await
         .unwrap();
-    assert_eq!(result_active, expected_active);
 
-    let active_error = active_repo
-        .get_active(wrong_active.active_id)
-        .await
-        .err()
-        .unwrap();
-    assert!(matches!(active_error, DomainError::EntityNotFound { .. }));
-
-    let result_active = active_repo
-        .update_active(updated_test_active)
+    let got_active = tm
+        .active_repo
+        .get_active(created_active.active_id)
         .await
         .unwrap();
-    assert_eq!(result_active, expected_updated_active);
 
-    let active_error = active_repo
-        .delete_active(wrong_active.active_id)
+    // Assert
+    assert_eq!(expected_active, got_active);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn test_it_get_not_existing_active_error() {
+    // Arrange
+    let tm = TestManager::default().await;
+    let active_id = Faker.fake();
+
+    // Act
+    let active_error = tm.active_repo.get_active(active_id).await.unwrap_err();
+
+    // Assert
+    match active_error {
+        DomainError::EntityNotFound { entity, id } => {
+            assert_eq!(active_id.to_string(), id);
+            assert_eq!(entity, "Active");
+        },
+        _ => panic!("Expected EntityNotFound"),
+    }
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn test_it_get_deleted_active_error() {
+    // Arrange
+    let tm = TestManager::default().await;
+
+    // Act
+    let expected_active = ActiveEntity {
+        user_id: tm
+            .user_repo
+            .create_user(&Faker.fake())
+            .await
+            .unwrap()
+            .user_id,
+        ..Faker.fake()
+    };
+
+    let created_active = ActiveEntity {
+        active_id: expected_active.active_id,
+        ..tm.active_repo
+            .create_active(&expected_active)
+            .await
+            .unwrap()
+    };
+
+    let deleted_active = tm
+        .active_repo
+        .delete_active(created_active.active_id)
         .await
-        .err()
         .unwrap();
-    assert!(matches!(active_error, DomainError::EntityNotFound { .. }));
 
-    let result_active = active_repo
-        .delete_active(result_active.active_id)
+    let got_active_error = tm
+        .active_repo
+        .get_active(deleted_active.active_id)
+        .await
+        .unwrap_err();
+
+    // Assert
+    match got_active_error {
+        DomainError::EntityNotFound { entity, id } => {
+            assert_eq!(deleted_active.active_id.to_string(), id);
+            assert_eq!(entity, "Active");
+        },
+        _ => panic!("Expected EntityNotFound"),
+    }
+    // Assert
+    assert_eq!(expected_active, deleted_active);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn test_it_delete_active_success() {
+    // Arrange
+    let tm = TestManager::default().await;
+
+    // Act
+    let expected_active = ActiveEntity {
+        user_id: tm
+            .user_repo
+            .create_user(&Faker.fake())
+            .await
+            .unwrap()
+            .user_id,
+        ..Faker.fake()
+    };
+
+    let created_active = ActiveEntity {
+        active_id: expected_active.active_id,
+        ..tm.active_repo
+            .create_active(&expected_active)
+            .await
+            .unwrap()
+    };
+
+    let deleted_active = tm
+        .active_repo
+        .delete_active(created_active.active_id)
         .await
         .unwrap();
-    assert_eq!(result_active, expected_active);
 
-    user_repo.delete_user(result_user.user_id).await.unwrap();
+    // Assert
+    assert_eq!(expected_active, deleted_active);
+}
 
-    let users_on_end_test = user_repo.list_users().await.unwrap();
-    assert_eq!(users_on_start_test, users_on_end_test);
-    let actives_on_end_test = active_repo.list_actives().await.unwrap();
-    assert_eq!(actives_on_start_test, actives_on_end_test);
+#[tokio::test(flavor = "multi_thread")]
+async fn test_it_delete_active_error() {
+    // Arrange
+    let tm = TestManager::default().await;
+    let active_id = Faker.fake();
+
+    // Act
+    let active_error = tm.active_repo.delete_active(active_id).await.unwrap_err();
+
+    // Assert
+    match active_error {
+        DomainError::EntityNotFound { entity, id } => {
+            assert_eq!(active_id.to_string(), id);
+            assert_eq!(entity, "Active");
+        },
+        _ => panic!("Expected EntityNotFound"),
+    }
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn test_it_update_active_success() {
+    // Arrange
+    let tm = TestManager::default().await;
+
+    // Act
+    let expected_active = ActiveEntity {
+        user_id: tm
+            .user_repo
+            .create_user(&Faker.fake())
+            .await
+            .unwrap()
+            .user_id,
+        ..Faker.fake()
+    };
+
+    let active_to_create = ActiveEntity {
+        active_id: expected_active.active_id,
+        user_id: expected_active.user_id,
+        ..Faker.fake()
+    };
+
+    let created_active = tm
+        .active_repo
+        .create_active(&active_to_create)
+        .await
+        .unwrap();
+
+    let updated_active = tm
+        .active_repo
+        .update_active(&expected_active)
+        .await
+        .unwrap();
+
+    // Assert
+    assert_eq!(expected_active, created_active);
+    assert_eq!(expected_active, updated_active);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn test_it_update_not_existing_active_error() {
+    // Arrange
+    let tm = TestManager::default().await;
+
+    // Act
+    let active_error = tm
+        .active_repo
+        .update_active(&Faker.fake())
+        .await
+        .unwrap_err();
+
+    // Assert
+    match active_error {
+        DomainError::RepositoryError(msg) => {
+            assert!(msg.contains("None of the records are updated"))
+        },
+        _ => panic!("Expected RepositoryError"),
+    }
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn test_it_update_deleted_active_error() {
+    // Arrange
+    let tm = TestManager::default().await;
+
+    // Act
+    let expected_active = ActiveEntity {
+        user_id: tm
+            .user_repo
+            .create_user(&Faker.fake())
+            .await
+            .unwrap()
+            .user_id,
+        ..Faker.fake()
+    };
+
+    let created_active = tm
+        .active_repo
+        .create_active(&expected_active)
+        .await
+        .unwrap();
+
+    let _ = tm
+        .active_repo
+        .delete_active(created_active.active_id)
+        .await
+        .unwrap();
+
+    let update_error = tm
+        .active_repo
+        .update_active(&expected_active)
+        .await
+        .unwrap_err();
+
+    // Assert
+    match update_error {
+        DomainError::RepositoryError(msg) => {
+            assert!(
+                msg.contains("None of the records are updated"),
+                "Unexpected error message: {msg}"
+            )
+        },
+        _ => panic!("Expected RepositoryError"),
+    }
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn test_it_update_active_with_invalid_user_id_error() {
+    // Arrange
+    let tm = TestManager::default().await;
+
+    let valid_active = ActiveEntity {
+        user_id: tm
+            .user_repo
+            .create_user(&Faker.fake())
+            .await
+            .unwrap()
+            .user_id,
+        ..Faker.fake()
+    };
+    let created_active = tm.active_repo.create_active(&valid_active).await.unwrap();
+
+    let mut invalid_active = created_active.clone();
+    invalid_active.user_id = Faker.fake();
+
+    // Act
+    let update_error = tm
+        .active_repo
+        .update_active(&invalid_active)
+        .await
+        .unwrap_err();
+
+    // Assert
+    match update_error {
+        DomainError::RepositoryError(msg) => {
+            assert!(
+                msg.contains("violates foreign key constraint"),
+                "Unexpected error message: {msg}",
+            )
+        },
+        _ => panic!("Expected RepositoryError"),
+    }
 }
