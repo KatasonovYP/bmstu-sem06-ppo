@@ -22,12 +22,12 @@ impl CliActiveController {
 
     pub async fn create_active(&self, command: &ActiveCommands) {
         let entity = ActiveEntity::try_from(command).unwrap();
-        self.active_service.create_active(entity).await.unwrap();
+        self.active_service.create_active(&entity).await.unwrap();
     }
 
     pub async fn update_active(&self, command: &ActiveCommands) {
         let entity = ActiveEntity::try_from(command).unwrap();
-        self.active_service.update_active(entity).await.unwrap();
+        self.active_service.update_active(&entity).await.unwrap();
     }
 
     pub async fn list_actives(&self) {

@@ -3,10 +3,6 @@ kind: Job
 metadata:
   name: {{ .Values.meta.name }}-migration-job
   namespace: {{ .Values.meta.namespace }}
-  annotations:
-    "helm.sh/hook": pre-upgrade
-    "helm.sh/hook-weight": "-5"
-    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
 spec:
   backoffLimit: 3
   template:
@@ -15,8 +11,12 @@ spec:
       containers:
         - name: {{ .Values.meta.name }}-migration
           image: "{{ .Values.image.repository }}/migration:{{ .Values.image.tag }}"
-          command: ["./app", "up", "--database-url"]
-          args: ["$(APP_POSTGRES_CONNECTION_STRING)"]
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              export POSTGRES_CONNECTION_STRING="postgres://${APP_POSTGRES_USER}:${APP_POSTGRES_PASSWORD}@${APP_POSTGRES_HOST}:${APP_POSTGRES_PORT}/${APP_POSTGRES_DATABASE}"; 
+              echo $POSTGRES_CONNECTION_STRING
+              /app/app up --database-url $POSTGRES_CONNECTION_STRING
           envFrom:
             - configMapRef:
                 name: {{ .Values.meta.name }}-config

@@ -1,0 +1,6 @@
+meta:
+  name: patroni-it-{{ env "CI_ENVIRONMENT_NAME" }}
+  namespace: patroni
+
+patroni:
+  replicas: 1

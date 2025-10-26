@@ -51,9 +51,9 @@ impl NotificationRepository for PostgresNotificationRepository {
     #[tracing::instrument(level = "trace", skip(self), err(Debug), ret)]
     async fn create_notification(
         &self,
-        notification: NotificationEntity,
+        notification: &NotificationEntity,
     ) -> Result<NotificationEntity, DomainError> {
-        Notifications::insert(notifications::ActiveModel::from(notification))
+        Notifications::insert(notifications::ActiveModel::from(notification.clone()))
             .exec_with_returning(self.db.get_connection().await.as_ref())
             .await
             .map(NotificationEntity::from)
@@ -87,9 +87,9 @@ impl NotificationRepository for PostgresNotificationRepository {
     #[tracing::instrument(level = "trace", skip(self), err(Debug), ret)]
     async fn update_notification(
         &self,
-        notification: NotificationEntity,
+        notification: &NotificationEntity,
     ) -> Result<NotificationEntity, DomainError> {
-        Notifications::update(notifications::ActiveModel::from(notification))
+        Notifications::update(notifications::ActiveModel::from(notification.clone()))
             .exec(self.db.get_connection().await.as_ref())
             .await
             .map(NotificationEntity::from)
@@ -196,10 +196,7 @@ mod tests {
         let pool = PostgresConnectionPool::new(Arc::new(connection));
         let repo = PostgresNotificationRepository { db: Arc::new(pool) };
 
-        let notif = repo
-            .create_notification(notif_entity.clone())
-            .await
-            .unwrap();
+        let notif = repo.create_notification(&notif_entity).await.unwrap();
         assert_eq!(notif, NotificationEntity::from(notif_model));
     }
 
@@ -216,7 +213,7 @@ mod tests {
         let pool = PostgresConnectionPool::new(Arc::new(connection));
         let repo = PostgresNotificationRepository { db: Arc::new(pool) };
 
-        let result = repo.create_notification(notif_entity).await;
+        let result = repo.create_notification(&notif_entity).await;
         assert!(result.is_err());
 
         match result {
@@ -367,10 +364,7 @@ mod tests {
         let pool = PostgresConnectionPool::new(Arc::new(connection));
         let repo = PostgresNotificationRepository { db: Arc::new(pool) };
 
-        let result = repo
-            .update_notification(notif_entity.clone())
-            .await
-            .unwrap();
+        let result = repo.update_notification(&notif_entity).await.unwrap();
         assert_eq!(result, NotificationEntity::from(notif_model));
     }
 
@@ -388,7 +382,7 @@ mod tests {
 
         let pool = PostgresConnectionPool::new(Arc::new(connection));
         let repo = PostgresNotificationRepository { db: Arc::new(pool) };
-        let result = repo.update_notification(notif_entity).await;
+        let result = repo.update_notification(&notif_entity).await;
 
         match result {
             Err(DomainError::RepositoryError(msg)) => {

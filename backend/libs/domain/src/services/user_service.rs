@@ -37,7 +37,7 @@ impl AbstractUserService for UserService {
     }
 
     #[tracing::instrument(skip(self), err(Debug), ret)]
-    async fn create_user(&self, user: UserEntity) -> Result<UserEntity, DomainError> {
+    async fn create_user(&self, user: &UserEntity) -> Result<UserEntity, DomainError> {
         self.user_repository.create_user(user).await
     }
 
@@ -47,7 +47,7 @@ impl AbstractUserService for UserService {
     }
 
     #[tracing::instrument(skip(self), err(Debug), ret)]
-    async fn update_user(&self, user: UserEntity) -> Result<UserEntity, DomainError> {
+    async fn update_user(&self, user: &UserEntity) -> Result<UserEntity, DomainError> {
         self.user_repository.update_user(user).await
     }
 
@@ -83,7 +83,7 @@ mod tests {
             .returning(move |_| Ok(mock_user.clone()));
         let user_service = UserService::new(Arc::new(user_repository));
 
-        let result = user_service.create_user(input_user).await.unwrap();
+        let result = user_service.create_user(&input_user).await.unwrap();
 
         assert_eq!(result, expected_user);
     }

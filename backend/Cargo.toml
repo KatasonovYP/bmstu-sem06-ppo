@@ -42,6 +42,7 @@ aws-sdk-s3 = "1.108.0"
 tokio = "1.29.1"
 async-trait = "0.1.88"
 async-std = "1"
+async-dropper = "0.3.1"
 
 # Serialization
 serde = "1.0"
@@ -80,6 +81,7 @@ teloxide = { version = "0.15", default-features = false }
 mockall = "0.13.1"
 fake = "4.3"
 config = "0.15.11"
+rstest = "0.26.1"
 
 [patch.crates-io]
 sea-orm = { git = 'https://github.com/KatasonovYP/sea-orm.git', branch = 'fix/seaography-mock' }

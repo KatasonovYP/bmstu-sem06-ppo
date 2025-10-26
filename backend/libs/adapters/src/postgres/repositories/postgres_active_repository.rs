@@ -40,8 +40,8 @@ impl PostgresActiveRepository {
 #[async_trait::async_trait]
 impl ActiveRepository for PostgresActiveRepository {
     #[tracing::instrument(level = "trace", skip(self), err(Debug), ret)]
-    async fn create_active(&self, active: ActiveEntity) -> Result<ActiveEntity, DomainError> {
-        Actives::insert(actives::ActiveModel::from(active))
+    async fn create_active(&self, active: &ActiveEntity) -> Result<ActiveEntity, DomainError> {
+        Actives::insert(actives::ActiveModel::from(active.clone()))
             .exec_with_returning(self.db.get_connection().await.as_ref())
             .await
             .map(ActiveEntity::try_from)
@@ -83,8 +83,8 @@ impl ActiveRepository for PostgresActiveRepository {
     }
 
     #[tracing::instrument(level = "trace", skip(self), err(Debug), ret)]
-    async fn update_active(&self, active: ActiveEntity) -> Result<ActiveEntity, DomainError> {
-        Actives::update(actives::ActiveModel::from(active))
+    async fn update_active(&self, active: &ActiveEntity) -> Result<ActiveEntity, DomainError> {
+        Actives::update(actives::ActiveModel::from(active.clone()))
             .exec(self.db.get_connection().await.as_ref())
             .await
             .map(ActiveEntity::try_from)
@@ -170,10 +170,7 @@ mod tests {
 
         let pool = PostgresConnectionPool::new(Arc::new(connection));
         let active_repo = PostgresActiveRepository::new(Arc::new(pool));
-        let active_entity_result = active_repo
-            .create_active(active_entity.clone())
-            .await
-            .unwrap();
+        let active_entity_result = active_repo.create_active(&active_entity).await.unwrap();
 
         assert_eq!(active_entity_result, active_entity);
     }
@@ -193,7 +190,7 @@ mod tests {
         let pool = PostgresConnectionPool::new(Arc::new(connection));
         let active_repo = PostgresActiveRepository::new(Arc::new(pool));
 
-        let result = active_repo.create_active(active_entity).await;
+        let result = active_repo.create_active(&active_entity).await;
 
         // Проверяем, что вернулась ошибка
         assert!(result.is_err());
@@ -358,10 +355,7 @@ mod tests {
 
         let pool = PostgresConnectionPool::new(Arc::new(connection));
         let active_repo = PostgresActiveRepository::new(Arc::new(pool));
-        let result = active_repo
-            .update_active(active_entity.clone())
-            .await
-            .unwrap();
+        let result = active_repo.update_active(&active_entity).await.unwrap();
         assert_eq!(result, active_entity);
     }
 
@@ -382,7 +376,7 @@ mod tests {
 
         let pool = PostgresConnectionPool::new(Arc::new(connection));
         let active_repo = PostgresActiveRepository::new(Arc::new(pool));
-        let result = active_repo.update_active(active_entity).await;
+        let result = active_repo.update_active(&active_entity).await;
 
         match result {
             Err(DomainError::RepositoryError(msg)) => {

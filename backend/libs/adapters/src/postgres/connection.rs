@@ -18,7 +18,7 @@ pub trait AbstractConnectionPool: Interface + Send + Sync + 'static {
     async fn get_connection(&self) -> Arc<DatabaseConnection>;
 }
 
-#[derive(Component)]
+#[derive(Component, Default)]
 #[shaku(interface = AbstractConnectionPool)]
 pub struct PostgresConnectionPool {
     #[shaku(default)]

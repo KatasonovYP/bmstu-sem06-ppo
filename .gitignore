@@ -6,3 +6,4 @@
 **/.helmwave
 key.txt
 **/allure-report
+helmwave.yml

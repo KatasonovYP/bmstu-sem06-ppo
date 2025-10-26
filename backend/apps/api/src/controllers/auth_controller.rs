@@ -103,7 +103,7 @@ async fn login(
                 second_name: telegram_user.last_name,
             };
 
-            controller.user_service.create_user(new_user).await?
+            controller.user_service.create_user(&new_user).await?
         },
     };
 

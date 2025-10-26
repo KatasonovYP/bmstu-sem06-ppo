@@ -1,61 +1,217 @@
-use std::sync::Arc;
+#[path = "./utils.rs"]
+mod utils;
 
-use adapters::{
-    di_domain_module::di_domain_module,
-    settings::Settings,
-};
 use domain::{
     errors::DomainError,
     models::UserEntity,
-    ports::storage::UserRepository,
 };
 use fake::{
     Fake,
     Faker,
 };
-use shaku::HasComponent;
+use utils::TestManager;
 
-#[tokio::test]
-async fn test_it_user_repository() {
-    let settings = Settings::new("../../config/app.default.yaml").unwrap();
-    let module = di_domain_module(settings).await;
-    let user_repo: Arc<dyn UserRepository> = module.resolve();
+#[tokio::test(flavor = "multi_thread")]
+async fn test_it_create_user_success() {
+    // Arrange
+    let tm = TestManager::default().await;
 
-    let users_on_start_test = user_repo.list_users().await.unwrap();
+    // Act
+    let expected_user: UserEntity = Faker.fake();
+    let result_user = tm.user_repo.create_user(&expected_user).await.unwrap();
 
-    let test_user: UserEntity = Faker.fake();
-
-    let result_user = user_repo.create_user(test_user.clone()).await.unwrap();
-
-    let wrong_user: UserEntity = Faker.fake();
-
-    let mut expected_user = test_user.clone();
-    expected_user.user_id = result_user.user_id;
+    // Assert
     assert_eq!(result_user, expected_user);
+}
 
-    let mut updated_test_user: UserEntity = Faker.fake();
-    updated_test_user.user_id = result_user.user_id;
-    let expected_updated_user = updated_test_user.clone();
+#[tokio::test(flavor = "multi_thread")]
+async fn test_it_create_user_error_duplicate() {
+    // Arrange
+    let tm = TestManager::default().await;
+    let user = Faker.fake();
+    let _ = tm.user_repo.create_user(&user).await.unwrap();
 
-    let result_user = user_repo.get_user(result_user.user_id).await.unwrap();
-    assert_eq!(result_user, expected_user);
+    // Act
+    let error = tm.user_repo.create_user(&user).await.unwrap_err();
 
-    let user_error = user_repo.get_user(wrong_user.user_id).await.err().unwrap();
-    assert!(matches!(user_error, DomainError::EntityNotFound { .. }));
+    // Assert
+    match error {
+        DomainError::RepositoryError(msg) => {
+            assert!(
+                msg.contains("duplicate key value") || msg.contains("UNIQUE constraint failed"),
+                "Unexpected error message: {msg}"
+            )
+        },
+        _ => panic!("Expected RepositoryError"),
+    }
+}
 
-    let result_user = user_repo.update_user(updated_test_user).await.unwrap();
-    assert_eq!(result_user, expected_updated_user);
+#[tokio::test(flavor = "multi_thread")]
+async fn test_it_get_user_success() {
+    // Arrange
+    let tm = TestManager::default().await;
+    let user: UserEntity = Faker.fake();
+    let created_user = tm.user_repo.create_user(&user).await.unwrap();
 
-    let user_error = user_repo
-        .delete_user(wrong_user.user_id)
+    // Act
+    let fetched_user = tm.user_repo.get_user(created_user.user_id).await.unwrap();
+
+    // Assert
+    assert_eq!(created_user, fetched_user);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn test_it_get_not_existing_user_error() {
+    // Arrange
+    let tm = TestManager::default().await;
+    let user_id = Faker.fake();
+
+    // Act
+    let error = tm.user_repo.get_user(user_id).await.unwrap_err();
+
+    // Assert
+    match error {
+        DomainError::EntityNotFound { entity, id } => {
+            assert_eq!(user_id.to_string(), id);
+            assert_eq!(entity, "User");
+        },
+        _ => panic!("Expected EntityNotFound"),
+    }
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn test_it_get_deleted_user_error() {
+    // Arrange
+    let tm = TestManager::default().await;
+    let user: UserEntity = Faker.fake();
+    
+    // Act
+    let created_user = tm.user_repo.create_user(&user).await.unwrap();
+    
+    let deleted_user = tm
+        .user_repo
+        .delete_user(created_user.user_id)
         .await
-        .err()
         .unwrap();
-    assert!(matches!(user_error, DomainError::EntityNotFound { .. }));
+    let fetch_error = tm
+        .user_repo
+        .get_user(deleted_user.user_id)
+        .await
+        .unwrap_err();
 
-    let result_user = user_repo.delete_user(result_user.user_id).await.unwrap();
-    assert_eq!(result_user, expected_user);
+    // Assert
+    match fetch_error {
+        DomainError::EntityNotFound { entity, id } => {
+            assert_eq!(deleted_user.user_id.to_string(), id);
+            assert_eq!(entity, "User");
+        },
+        _ => panic!("Expected EntityNotFound"),
+    }
+    assert_eq!(deleted_user, created_user);
+}
 
-    let users_on_end_test = user_repo.list_users().await.unwrap();
-    assert_eq!(users_on_start_test, users_on_end_test);
+#[tokio::test(flavor = "multi_thread")]
+async fn test_it_delete_user_success() {
+    // Arrange
+    let tm = TestManager::default().await;
+    let user: UserEntity = Faker.fake();
+
+    // Act
+    let created_user = tm.user_repo.create_user(&user).await.unwrap();
+
+    let deleted_user = tm
+        .user_repo
+        .delete_user(created_user.user_id)
+        .await
+        .unwrap();
+
+    // Assert
+    assert_eq!(created_user, deleted_user);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn test_it_delete_user_error() {
+    // Arrange
+    let tm = TestManager::default().await;
+    let user_id = Faker.fake();
+
+    // Act
+    let error = tm.user_repo.delete_user(user_id).await.unwrap_err();
+
+    // Assert
+    match error {
+        DomainError::EntityNotFound { entity, id } => {
+            assert_eq!(user_id.to_string(), id);
+            assert_eq!(entity, "User");
+        },
+        _ => panic!("Expected EntityNotFound"),
+    }
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn test_it_update_user_success() {
+    // Arrange
+    let tm = TestManager::default().await;
+    let orig_user: UserEntity = Faker.fake();
+
+    // Act
+    let created_user = tm.user_repo.create_user(&orig_user).await.unwrap();
+
+    let expected_user = UserEntity {
+        user_id: created_user.user_id,
+        ..Faker.fake()
+    };
+
+    let updated_user = tm.user_repo.update_user(&expected_user).await.unwrap();
+
+    // Assert
+    assert_eq!(expected_user, updated_user);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn test_it_update_not_existing_user_error() {
+    // Arrange
+    let tm = TestManager::default().await;
+    let user: UserEntity = Faker.fake();
+
+    // Act
+    let error = tm.user_repo.update_user(&user).await.unwrap_err();
+
+    // Assert
+    match error {
+        DomainError::RepositoryError(msg) => {
+            assert!(
+                msg.contains("None of the records are updated"),
+                "Unexpected error message: {msg}"
+            )
+        },
+        _ => panic!("Expected RepositoryError"),
+    }
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn test_it_update_deleted_user_error() {
+    // Arrange
+    let tm = TestManager::default().await;
+    let user: UserEntity = Faker.fake();
+    let created_user = tm.user_repo.create_user(&user).await.unwrap();
+    let _ = tm
+        .user_repo
+        .delete_user(created_user.user_id)
+        .await
+        .unwrap();
+
+    // Act
+    let error = tm.user_repo.update_user(&created_user).await.unwrap_err();
+
+    // Assert
+    match error {
+        DomainError::RepositoryError(msg) => {
+            assert!(
+                msg.contains("None of the records are updated"),
+                "Unexpected error message: {msg}"
+            )
+        },
+        _ => panic!("Expected RepositoryError"),
+    }
 }

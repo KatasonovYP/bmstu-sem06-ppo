@@ -22,12 +22,12 @@ impl CliUserController {
 
     pub async fn create_user(&self, command: &UserCommands) {
         let entity = UserEntity::try_from(command).unwrap();
-        self.user_service.create_user(entity).await.unwrap();
+        self.user_service.create_user(&entity).await.unwrap();
     }
 
     pub async fn update_user(&self, command: &UserCommands) {
         let entity = UserEntity::try_from(command).unwrap();
-        self.user_service.update_user(entity).await.unwrap();
+        self.user_service.update_user(&entity).await.unwrap();
     }
 
     pub async fn list_users(&self) {

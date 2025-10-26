@@ -16,8 +16,12 @@ pub struct Settings {
     pub moex_base_url: String,
     pub api_server_port: u16,
     pub api_cors_origins: Vec<String>,
-    pub local_admin: bool,
-    pub postgres_connection_string: String,
+    pub admin_static_s3_bucket: String,
+    pub postgres_user: String,
+    pub postgres_password: String,
+    pub postgres_host: String,
+    pub postgres_port: String,
+    pub postgres_database: String,
     pub redis_connection_string: String,
     pub telegram_bot_token: String,
     pub admin_user_login: String,
@@ -35,5 +39,16 @@ impl Settings {
             .build()?;
 
         settings.try_deserialize()
+    }
+
+    pub fn build_postgres_connection_string(&self) -> String {
+        format!(
+            "postgres://{}:{}@{}:{}/{}",
+            self.postgres_user,
+            self.postgres_password,
+            self.postgres_host,
+            self.postgres_port,
+            self.postgres_database
+        )
     }
 }

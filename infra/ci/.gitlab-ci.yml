@@ -13,6 +13,33 @@ stages:
   - deploy-production
   - allure-report
 
+.job-test-template: &job-test-template
+  when: on_success
+  image: cr.yandex/crpav8o4hj057l1dbgqa/the-qsb/stocks-tracker/backend-builder:latest
+  dependencies: []
+  variables:
+    TEST_TYPE: TEST_TYPE_PLACEHOLDER
+    SEC: stocks-tracker-testing-secrets.yaml
+    VALUES: stocks-tracker-testing-values.yaml
+  cache:
+    - key: backend-tests
+      policy: pull
+      paths:
+        - backend/tests
+  script:
+    - cd backend
+    - sops --decrypt ../infra/helm/values/${SEC} | yq '.secret | to_entries | .[] | "\(.key)=\"\(.value)\""' -rc > .env
+    - cat ../infra/helm/values/${VALUES} | yq '.env | to_entries | .[] | "\(.key)=\"\(.value)\""' -rc >> .env
+    - env
+    - APP_POSTGRES_HOST="patroni-it-$CI_COMMIT_SHORT_SHA.patroni.svc" cargo nextest run --nff --no-capture --archive-file ./tests/${TEST_TYPE}.tar.zst --test-threads 1
+  after_script:
+    - mkdir -p ./backend/allure-results
+    - mv ./backend/target/nextest/default/junit.xml ./backend/allure-results/${TEST_TYPE}.xml
+  artifacts:
+    when: always
+    paths:
+      - ./backend/allure-results/${TEST_TYPE}.xml
+
 .aws-env: &aws-env
   AWS_DEFAULT_REGION: ru-central1
   AWS_ENDPOINT_URL: https://storage.yandexcloud.net
@@ -113,54 +140,6 @@ job-build-backend:
   after_script:
     - sccache --show-stats
 
-job-test-unit:
-  stage: test
-  when: on_success
-  image: cr.yandex/crpav8o4hj057l1dbgqa/the-qsb/stocks-tracker/backend-builder:latest
-  dependencies: []
-  needs:
-    - job-build-backend
-  cache:
-    - key: backend-tests
-      policy: pull
-      paths:
-        - backend/tests
-  script:
-    - cd backend
-    - cargo nextest run --nff --no-capture --archive-file ./tests/unit.tar.zst
-  after_script:
-    - mkdir -p ./backend/allure-results
-    - mv ./backend/target/nextest/default/junit.xml ./backend/allure-results/unit.xml
-  artifacts:
-    when: always
-    paths:
-      - ./backend/allure-results/unit.xml
-
-job-test-integration:
-  stage: test
-  when: on_success
-  needs:
-    - job-test-unit
-  image: cr.yandex/crpav8o4hj057l1dbgqa/the-qsb/stocks-tracker/backend-builder:latest
-  dependencies: []
-  cache:
-    - key: backend-tests
-      policy: pull
-      paths:
-        - backend/tests
-  script:
-    - cd backend
-    - sops --decrypt ../infra/helm/values/stocks-tracker-testing-secrets.yaml | yq '.secret | to_entries | .[] | "\(.key)=\"\(.value)\""' -rc > .env
-    - source .env
-    - cargo nextest run --nff --no-capture --archive-file ./tests/integration.tar.zst --test-threads 1
-  after_script:
-    - mkdir -p ./backend/allure-results
-    - mv ./backend/target/nextest/default/junit.xml ./backend/allure-results/integration.xml
-  artifacts:
-    when: always
-    paths:
-      - ./backend/allure-results/integration.xml
-
 job-push-backend:
   stage: build
   when: on_success
@@ -194,6 +173,54 @@ job-push-backend:
       --destination "${CI_REGISTRY}/${CI_PROJECT_PATH}/${APP}:${CI_COMMIT_SHORT_SHA}"
       --destination "${CI_REGISTRY}/${CI_PROJECT_PATH}/${APP}:latest"
 
+job-test-unit:
+  <<: *job-test-template
+  stage: test
+  needs:
+    - job-build-backend
+  variables:
+    TEST_TYPE: unit
+    SEC: stocks-tracker-testing-secrets.yaml
+    VALUES: stocks-tracker-testing-values.yaml
+
+
+job-up-db-integration: &job-helmwave-db-integration
+  stage: test
+  needs:
+    - job-push-backend
+  when: on_success
+  image: diamon/helmwave:latest
+  dependencies: []
+  cache: []
+  variables:
+    COMMAND: up
+  script:
+    - >-
+      CI_ENVIRONMENT_NAME="${CI_COMMIT_SHORT_SHA}"
+      helmwave ${COMMAND}
+      --build
+      --yml
+      --tpl infra/helm/helmwave.db.integration.yml.tpl
+
+job-test-integration:
+  <<: *job-test-template
+  stage: test
+  needs:
+    - job-test-unit
+    - job-up-db-integration
+  variables:
+    TEST_TYPE: integration
+    SEC: stocks-tracker-migration-it-secrets.yaml
+    VALUES: stocks-tracker-migration-it-values.yaml
+
+job-down-db-integration:
+  <<: *job-helmwave-db-integration
+  needs:
+    - job-test-integration
+  variables:
+    COMMAND: down
+  when: always
+
 job-deploy-backend-testing:
   stage: deploy-testing
   needs:
@@ -211,29 +238,14 @@ job-deploy-backend-testing:
       -f infra/helm/helmwave.app.testing.yml
 
 job-test-e2e:
+  <<: *job-test-template
   stage: test-e2e
-  when: on_success
   needs:
     - job-deploy-backend-testing
-  image: cr.yandex/crpav8o4hj057l1dbgqa/the-qsb/stocks-tracker/backend-builder:latest
-  dependencies: []
-  cache:
-    - key: backend-tests
-      policy: pull
-      paths:
-        - backend/tests
-  script:
-    - cd backend
-    - sops --decrypt ../infra/helm/values/stocks-tracker-testing-secrets.yaml | yq '.secret | to_entries | .[] | "\(.key)=\"\(.value)\""' -rc > .env
-    - source .env
-    - cargo nextest run --nff --no-capture --archive-file ./tests/e2e.tar.zst --test-threads 1
-  after_script:
-    - mkdir -p ./backend/allure-results
-    - mv ./backend/target/nextest/default/junit.xml ./backend/allure-results/e2e.xml
-  artifacts:
-    when: always
-    paths:
-      - ./backend/allure-results/e2e.xml
+  variables:
+    TEST_TYPE: e2e
+    SEC: stocks-tracker-testing-secrets.yaml
+    VALUES: stocks-tracker-testing-values.yaml
 
 job-deploy-backend-production:
   stage: deploy-production
@@ -316,6 +328,8 @@ job-allure-report:
       s3://${S3_BUCKET}/${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME}/${CI_COMMIT_SHORT_SHA}
     - cat ./backend/allure-report/widgets/executors.json
     - echo "https://${S3_BUCKET}/${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME}/latest"
+    - 'curl --request POST --header "PRIVATE-TOKEN: $CI_JOB_TOKEN" "https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/merge_requests/$CI_MERGE_REQUEST_IID/notes?body=hello"'
+
   artifacts:
     paths:
       - ./backend/allure-report

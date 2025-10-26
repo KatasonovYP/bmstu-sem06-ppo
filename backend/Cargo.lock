@@ -16,6 +16,7 @@ dependencies = [
 name = "adapters"
 version = "0.1.0"
 dependencies = [
+ "async-dropper",
  "async-trait",
  "chrono",
  "config",
@@ -27,6 +28,7 @@ dependencies = [
  "quick-xml",
  "redis",
  "reqwest",
+ "rstest",
  "sea-orm",
  "seaography",
  "serde",
@@ -314,6 +316,45 @@ dependencies = [
 ]
 
 [[package]]
+name = "async-dropper"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d901072ae4dcdca2201b98beb02d31fb4b6b2472fbd0e870b12ec15b8b35b2d2"
+dependencies = [
+ "async-dropper-derive",
+ "async-dropper-simple",
+ "async-trait",
+ "futures",
+ "tokio",
+]
+
+[[package]]
+name = "async-dropper-derive"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a35cf17a37761f1c88b8e770b5956820fe84c12854165b6f930c604ea186e47e"
+dependencies = [
+ "async-trait",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.106",
+ "tokio",
+]
+
+[[package]]
+name = "async-dropper-simple"
+version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a7c4748dfe8cd3d625ec68fc424fa80c134319881185866f9e173af9e5d8add8"
+dependencies = [
+ "async-scoped",
+ "async-trait",
+ "futures",
+ "rustc_version",
+ "tokio",
+]
+
+[[package]]
 name = "async-executor"
 version = "1.13.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -465,6 +506,17 @@ dependencies = [
  "event-listener 5.4.1",
  "event-listener-strategy",
  "pin-project-lite",
+]
+
+[[package]]
+name = "async-scoped"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4042078ea593edffc452eef14e99fdb2b120caa4ad9618bcdeabc4a023b98740"
+dependencies = [
+ "futures",
+ "pin-project",
+ "tokio",
 ]
 
 [[package]]
@@ -4234,6 +4286,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "caf4aa5b0f434c91fe5c7f1ecb6a5ece2130b02ad2a590589dda5146df959001"
 
 [[package]]
+name = "relative-path"
+version = "1.9.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba39f3699c378cd8970968dcbff9c43159ea4cfbd88d43c00b22f2ef10a435d2"
+
+[[package]]
 name = "rend"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4380,6 +4438,35 @@ dependencies = [
  "spki 0.7.3",
  "subtle",
  "zeroize",
+]
+
+[[package]]
+name = "rstest"
+version = "0.26.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f5a3193c063baaa2a95a33f03035c8a72b83d97a54916055ba22d35ed3839d49"
+dependencies = [
+ "futures-timer",
+ "futures-util",
+ "rstest_macros",
+]
+
+[[package]]
+name = "rstest_macros"
+version = "0.26.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9c845311f0ff7951c5506121a9ad75aec44d083c31583b2ea5a30bcb0b0abba0"
+dependencies = [
+ "cfg-if",
+ "glob",
+ "proc-macro-crate",
+ "proc-macro2",
+ "quote",
+ "regex",
+ "relative-path",
+ "rustc_version",
+ "syn 2.0.106",
+ "unicode-ident",
 ]
 
 [[package]]

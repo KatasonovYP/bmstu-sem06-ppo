@@ -117,7 +117,7 @@ async fn create_notification(
     let data = notification.try_into()?;
     controller
         .notification_service
-        .create_notification(data)
+        .create_notification(&data)
         .await
         .map(NotificationResponse::from)
         .map(Json)
@@ -144,7 +144,7 @@ async fn update_notification(
     let data = notification.try_into()?;
     controller
         .notification_service
-        .update_notification(data)
+        .update_notification(&data)
         .await
         .map(NotificationResponse::from)
         .map(Json)

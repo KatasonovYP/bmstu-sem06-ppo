@@ -112,7 +112,7 @@ async fn create_user(
     let data = user.try_into()?;
     controller
         .user_service
-        .create_user(data)
+        .create_user(&data)
         .await
         .map(UserResponse::from)
         .map(Json)
@@ -139,7 +139,7 @@ async fn update_user(
     let data = user.try_into()?;
     controller
         .user_service
-        .update_user(data)
+        .update_user(&data)
         .await
         .map(UserResponse::from)
         .map(Json)

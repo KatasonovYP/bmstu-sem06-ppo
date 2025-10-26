@@ -180,19 +180,19 @@ async fn main() -> anyhow::Result<()> {
 
     let s3_origin = S3OriginBuilder::new()
         .config(s3_config.clone())
-        .bucket("static.admin.stocks-tracker.ru")
+        .bucket(&settings.admin_static_s3_bucket)
         .build()
         .expect("Failed to build S3 origin");
 
     let s3_origin_home = S3OriginBuilder::new()
         .config(s3_config)
-        .bucket("static.admin.stocks-tracker.ru")
+        .bucket(&settings.admin_static_s3_bucket)
         .prefix("admin/index.html")
         .prune_path(1)
         .build()
         .expect("Failed to build S3 origin");
 
-    let connection = Database::connect(&settings.postgres_connection_string)
+    let connection = Database::connect(settings.build_postgres_connection_string())
         .await
         .expect("Database connection failed");
 

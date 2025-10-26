@@ -81,17 +81,14 @@ async fn test_it_limit_monitor() {
     let notifications_on_start_test = notification_repo.list_notifications().await.unwrap();
 
     let test_user: UserEntity = Faker.fake();
-    let result_user = user_repo.create_user(test_user.clone()).await.unwrap();
+    let result_user = user_repo.create_user(&test_user).await.unwrap();
 
     let mut test_active: ActiveEntity = Faker.fake();
     test_active.user_id = result_user.user_id;
     test_active.bought_price = Price::rub(100.);
     test_active.count = 1;
     test_active.security_id = sequrity_id;
-    let result_active = active_repo
-        .create_active(test_active.clone())
-        .await
-        .unwrap();
+    let result_active = active_repo.create_active(&test_active).await.unwrap();
 
     let mut test_notification: NotificationEntity = Faker.fake();
     test_notification.active_id = result_active.active_id;
@@ -102,7 +99,7 @@ async fn test_it_limit_monitor() {
     // Act
 
     let result_notification = notification_repo
-        .create_notification(test_notification.clone())
+        .create_notification(&test_notification)
         .await
         .unwrap();
 

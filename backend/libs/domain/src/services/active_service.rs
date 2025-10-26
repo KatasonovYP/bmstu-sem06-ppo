@@ -44,9 +44,9 @@ impl AbstractActiveService for ActiveService {
     }
 
     #[tracing::instrument(skip(self), err(Debug), ret)]
-    async fn create_active(&self, active: ActiveEntity) -> Result<ActiveEntity, DomainError> {
+    async fn create_active(&self, active: &ActiveEntity) -> Result<ActiveEntity, DomainError> {
         self.price_ops_service
-            .get_active_current_price(&active)
+            .get_active_current_price(active)
             .await?;
         self.active_repository.create_active(active).await
     }
@@ -62,9 +62,9 @@ impl AbstractActiveService for ActiveService {
     }
 
     #[tracing::instrument(skip(self), err(Debug), ret)]
-    async fn update_active(&self, active: ActiveEntity) -> Result<ActiveEntity, DomainError> {
+    async fn update_active(&self, active: &ActiveEntity) -> Result<ActiveEntity, DomainError> {
         self.price_ops_service
-            .get_active_current_price(&active)
+            .get_active_current_price(active)
             .await?;
         self.active_repository.update_active(active).await
     }
@@ -158,7 +158,7 @@ mod tests {
         );
 
         assert_eq!(
-            active_service.create_active(input_active).await.unwrap(),
+            active_service.create_active(&input_active).await.unwrap(),
             expected_active,
         );
     }

@@ -32,7 +32,7 @@ impl AbstractSentService for SentService {
     }
 
     #[tracing::instrument(skip(self), err(Debug), ret)]
-    async fn create_sent(&self, sent: SentEntity) -> Result<SentEntity, DomainError> {
+    async fn create_sent(&self, sent: &SentEntity) -> Result<SentEntity, DomainError> {
         self.sent_repository.create_sent(sent).await
     }
 
@@ -42,7 +42,7 @@ impl AbstractSentService for SentService {
     }
 
     #[tracing::instrument(skip(self), err(Debug), ret)]
-    async fn update_sent(&self, sent: SentEntity) -> Result<SentEntity, DomainError> {
+    async fn update_sent(&self, sent: &SentEntity) -> Result<SentEntity, DomainError> {
         self.sent_repository.update_sent(sent).await
     }
 

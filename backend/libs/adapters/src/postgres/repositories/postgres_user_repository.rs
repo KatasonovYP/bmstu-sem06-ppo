@@ -35,8 +35,8 @@ pub struct PostgresUserRepository {
 #[async_trait::async_trait]
 impl UserRepository for PostgresUserRepository {
     #[tracing::instrument(level = "trace", skip(self), err(Debug), ret)]
-    async fn create_user(&self, user: UserEntity) -> Result<UserEntity, DomainError> {
-        Users::insert(users::ActiveModel::from(user))
+    async fn create_user(&self, user: &UserEntity) -> Result<UserEntity, DomainError> {
+        Users::insert(users::ActiveModel::from(user.clone()))
             .exec_with_returning(self.db.get_connection().await.as_ref())
             .await
             .map(UserEntity::try_from)
@@ -53,7 +53,7 @@ impl UserRepository for PostgresUserRepository {
             .map(UserEntity::try_from)
             .transpose()?
             .ok_or(DomainError::EntityNotFound {
-                entity: std::any::type_name::<UserEntity>().into(),
+                entity: "User".to_string(),
                 id: user_id.to_string(),
             })
     }
@@ -68,7 +68,7 @@ impl UserRepository for PostgresUserRepository {
             .map(UserEntity::try_from)
             .transpose()?
             .ok_or(DomainError::EntityNotFound {
-                entity: std::any::type_name::<UserEntity>().into(),
+                entity: "User".to_string(),
                 id: tg_id.to_string(),
             })
     }
@@ -85,8 +85,8 @@ impl UserRepository for PostgresUserRepository {
     }
 
     #[tracing::instrument(level = "trace", skip(self), err(Debug), ret)]
-    async fn update_user(&self, user: UserEntity) -> Result<UserEntity, DomainError> {
-        Users::update(users::ActiveModel::from(user))
+    async fn update_user(&self, user: &UserEntity) -> Result<UserEntity, DomainError> {
+        Users::update(users::ActiveModel::from(user.clone()))
             .exec(self.db.get_connection().await.as_ref())
             .await
             .map(UserEntity::try_from)
@@ -103,7 +103,7 @@ impl UserRepository for PostgresUserRepository {
             .next()
             .map(UserEntity::try_from)
             .ok_or(DomainError::EntityNotFound {
-                entity: std::any::type_name::<UserEntity>().into(),
+                entity: "User".to_string(),
                 id: user_id.to_string(),
             })?
     }
@@ -271,7 +271,7 @@ mod tests {
         let res = repo.get_user(1234).await;
         match res {
             Err(DomainError::EntityNotFound { entity, id }) => {
-                assert!(entity.contains("UserEntity"));
+                assert!(entity.contains("User"));
                 assert_eq!(id, "1234");
             },
             _ => panic!("Expected EntityNotFound error"),
@@ -322,7 +322,7 @@ mod tests {
         let res = repo.get_user_by_tg_id(1111).await;
         match res {
             Err(DomainError::EntityNotFound { entity, id }) => {
-                assert!(entity.contains("UserEntity"));
+                assert!(entity.contains("User"));
                 assert_eq!(id, "1111");
             },
             _ => panic!("Expected EntityNotFound error"),
@@ -395,7 +395,7 @@ mod tests {
         let pool = PostgresConnectionPool::new(Arc::new(connection));
         let repo = PostgresUserRepository { db: Arc::new(pool) };
 
-        let user = repo.update_user(entity.clone()).await.unwrap();
+        let user = repo.update_user(&entity).await.unwrap();
         assert_eq!(user, UserEntity::try_from(model).unwrap());
     }
 
@@ -462,7 +462,7 @@ mod tests {
         let result = repo.delete_user(444).await;
         match result {
             Err(DomainError::EntityNotFound { entity, id }) => {
-                assert!(entity.contains("UserEntity"));
+                assert!(entity.contains("User"));
                 assert_eq!(id, "444");
             },
             _ => panic!("Expected EntityNotFound error"),

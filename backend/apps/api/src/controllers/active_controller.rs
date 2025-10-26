@@ -118,7 +118,7 @@ async fn create_active(
     entity.user_id = user_id;
     controller
         .active_service
-        .create_active(entity)
+        .create_active(&entity)
         .await
         .map(ActiveResponse::from)
         .map(Json)
@@ -145,7 +145,7 @@ async fn update_active(
     let data = active.try_into()?;
     controller
         .active_service
-        .update_active(data)
+        .update_active(&data)
         .await
         .map(ActiveResponse::from)
         .map(Json)
