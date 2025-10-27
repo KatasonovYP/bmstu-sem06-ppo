@@ -62,6 +62,7 @@ dotenvy = "0.15.7"
 shaku = "0.6.2"
 tera = "1.19.1"
 url = "^2.5"
+secrecy = "0.10.3"
 
 # Error handling
 thiserror = "2.0"
@@ -72,6 +73,8 @@ log = "0.4.26"
 tracing = "0.1"
 tracing-appender = "0.2.3"
 tracing-subscriber = "0.3.19"
+tracing-opentelemetry = "0.32.0"
+opentelemetry-otlp = "0.31.0"
 
 # Telegram
 telegram-authorizer = "0.3.0"

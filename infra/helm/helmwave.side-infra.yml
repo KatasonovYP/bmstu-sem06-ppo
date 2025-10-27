@@ -8,6 +8,10 @@ repositories:
     url: https://grafana.github.io/helm-charts
   - name: prometheus-community
     url: https://prometheus-community.github.io/helm-charts
+  - name: hashicorp
+    url: https://helm.releases.hashicorp.com
+  - name: kubernetes-dashboard
+    url: https://kubernetes.github.io/dashboard/
 
 .options: &options
   create_namespace: true
@@ -47,7 +51,8 @@ releases:
     chart:
       name: prometheus-community/kube-prometheus-stack
     values:
-      - src: infra/helm/values/prometeus-grafana-secrets.yaml
+      - infra/helm/values/prometeus-values.yaml
+      - src: infra/helm/values/prometeus-secrets.yaml
         renderer: sops
 
   - name: loki-stack
@@ -57,6 +62,22 @@ releases:
       name: grafana/loki-stack
     values:
       - infra/helm/values/loki-stack-values.yaml
+
+  - name: vault
+    namespace: vault
+    <<: *options
+    chart:
+      name: hashicorp/vault
+      version: 0.28.0
+    # values:
+    #   - infra/helm/values/vault-values.yaml
+
+  - name: kubernetes-dashboard
+    namespace: kubernetes-dashboard
+    <<: *options
+    chart:
+      name: kubernetes-dashboard/kubernetes-dashboard
+      version: 7.13.0
 
   - name: stocks-tracker-side-infra
     namespace: stocks-tracker

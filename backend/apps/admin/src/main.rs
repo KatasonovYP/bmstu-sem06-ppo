@@ -1,7 +1,7 @@
 use std::net::SocketAddr;
 
 use adapters::{
-    di_domain_module::di_domain_module,
+    di_domain_module::BuildAppModule,
     postgres::schema::*,
     settings::Settings,
 };
@@ -88,12 +88,12 @@ async fn user_login(
     if params.email != state.settings.admin_user_login {
         panic!("unauthorized!");
     }
-    if params.password != state.settings.admin_user_password {
+    if params.password != state.settings.admin_user_password.expose_secret() {
         panic!("unauthorized!");
     }
 
     Ok(Json(serde_json::json!({
-        "token": state.settings.admin_user_token,
+        "token": state.settings.admin_user_token.expose_secret(),
         "pid": state.settings.admin_user_pid,
         "name": "Demo User",
         "is_verified": true,
@@ -120,7 +120,7 @@ async fn current_user(
     state: State<AppState>,
     headers: HeaderMap,
 ) -> Result<Json<serde_json::Value>, (StatusCode, &'static str)> {
-    check_user_auth(&headers, &state.settings.admin_user_token)?;
+    check_user_auth(&headers, state.settings.admin_user_token.expose_secret())?;
 
     Ok(Json(serde_json::json!({
         "pid": &state.settings.admin_user_pid,
@@ -155,7 +155,7 @@ async fn graphql_handler(
     headers: HeaderMap,
     req: GraphQLRequest,
 ) -> Result<GraphQLResponse, (StatusCode, &'static str)> {
-    check_user_auth(&headers, &state.settings.admin_user_token)?;
+    check_user_auth(&headers, state.settings.admin_user_token.expose_secret())?;
     const DEPTH: Option<usize> = None;
     const COMPLEXITY: Option<usize> = None;
     let schema = schema(state.connection.clone(), DEPTH, COMPLEXITY).unwrap();
@@ -167,11 +167,12 @@ use aws_config::{
     Region,
     SdkConfig as AwsSdkConfig,
 };
+use secrecy::ExposeSecret;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let settings = Settings::new("config/app.default.yaml").unwrap();
-    di_domain_module(settings.clone()).await;
+    BuildAppModule::new(&settings).build().await;
 
     let s3_config = AwsSdkConfig::builder()
         .endpoint_url("https://storage.yandexcloud.net".to_string())
@@ -192,7 +193,7 @@ async fn main() -> anyhow::Result<()> {
         .build()
         .expect("Failed to build S3 origin");
 
-    let connection = Database::connect(settings.build_postgres_connection_string())
+    let connection = Database::connect(settings.build_postgres_connection_string().expose_secret())
         .await
         .expect("Database connection failed");
 

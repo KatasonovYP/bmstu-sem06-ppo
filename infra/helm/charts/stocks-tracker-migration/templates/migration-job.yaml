@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ .Values.meta.name }}-migration-job
+  name: '{{ .Values.meta.name }}-migration-job-{{ .Values.image.tag }}'
   namespace: {{ .Values.meta.namespace }}
 spec:
   backoffLimit: 3

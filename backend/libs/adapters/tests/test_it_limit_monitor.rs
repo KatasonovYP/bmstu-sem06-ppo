@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use adapters::{
-    di_domain_module::di_domain_module,
+    di_domain_module::BuildAppModule,
     settings::Settings,
 };
 use domain::{
@@ -38,7 +38,7 @@ use shaku::HasComponent;
 #[tokio::test]
 async fn test_it_limit_monitor() {
     let settings = Settings::new("../../config/app.default.yaml").unwrap();
-    let module = di_domain_module(settings).await;
+    let module = BuildAppModule::new(&settings).build().await;
     let user_repo: Arc<dyn UserRepository> = module.resolve();
     let active_repo: Arc<dyn ActiveRepository> = module.resolve();
     let notification_repo: Arc<dyn NotificationRepository> = module.resolve();

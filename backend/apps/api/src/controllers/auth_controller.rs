@@ -18,6 +18,7 @@ use jsonwebtoken::{
     Header,
     encode,
 };
+use secrecy::{ExposeSecret, SecretString};
 use serde::{
     Deserialize,
     Serialize,
@@ -36,7 +37,7 @@ use crate::{
 #[derive(Clone)]
 pub struct ApiAuthController {
     pub user_service: Arc<dyn AbstractUserService>,
-    pub jwt_secret: String,
+    pub jwt_secret: SecretString,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -47,7 +48,7 @@ struct Claims {
 }
 
 impl ApiAuthController {
-    pub fn new(user_service: Arc<dyn AbstractUserService>, jwt_secret: String) -> Self {
+    pub fn new(user_service: Arc<dyn AbstractUserService>, jwt_secret: SecretString) -> Self {
         Self {
             user_service,
             jwt_secret,
@@ -122,7 +123,7 @@ async fn login(
     let token = encode(
         &Header::default(),
         &claims,
-        &EncodingKey::from_secret(controller.jwt_secret.as_bytes()),
+        &EncodingKey::from_secret(controller.jwt_secret.expose_secret().as_bytes()),
     )
     .map_err(|e| ApiError::InternalError(format!("Failed to create token: {e}")))?;
 

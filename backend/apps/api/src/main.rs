@@ -9,7 +9,7 @@ use std::{
 };
 
 use adapters::{
-    di_domain_module::di_domain_module,
+    di_domain_module::BuildAppModule,
     settings::Settings,
 };
 use axum::{
@@ -37,6 +37,7 @@ use http::{
     Method,
 };
 use middlewares::jwt_middleware::JwtAuth;
+use secrecy::ExposeSecret;
 use shaku::HasComponent;
 use tower_http::{
     cors::CorsLayer,
@@ -91,16 +92,16 @@ impl Modify for SecurityAddon {
 #[tokio::main]
 async fn main() {
     let settings = Settings::new("config/app.default.yaml").unwrap();
-    let jwt_token = settings.clone().telegram_bot_token;
-    let module = di_domain_module(settings.clone()).await;
+    let jwt_token = settings.telegram_bot_token.clone();
+    let jwt_auth = Arc::new(JwtAuth::new(jwt_token.clone()));
+
+    let module = BuildAppModule::new(&settings).build().await;
 
     let user_controller = ApiUserController::new(module.resolve());
     let auth_controller = ApiAuthController::new(module.resolve(), jwt_token.clone());
     let active_controller = ApiActiveController::new(module.resolve());
     let notification_controller = ApiNotificationController::new(module.resolve());
     let health_controller = ApiHealthController::new();
-
-    let jwt_auth = Arc::new(JwtAuth::new(jwt_token.clone()));
 
     let protected_router = OpenApiRouter::new()
         .nest("/actives", active_controller.router())
@@ -112,7 +113,7 @@ async fn main() {
         ));
 
     let public_router = OpenApiRouter::new()
-        .nest("/auth", auth_controller.router(&jwt_token))
+        .nest("/auth", auth_controller.router(jwt_token.expose_secret()))
         .nest("/health", health_controller.router());
 
     let api_v1_router = OpenApiRouter::new()

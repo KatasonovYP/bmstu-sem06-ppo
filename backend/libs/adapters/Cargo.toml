@@ -48,12 +48,16 @@ uuid = { workspace = true, features = ["v4"] }
 chrono = { workspace = true }
 dotenvy = { workspace = true }
 shaku = { workspace = true }
+secrecy = { workspace = true, features = ["serde"] }
 
 # Logging and tracing
 log = { workspace = true }
 tracing = { workspace = true, features = ["attributes"] }
-tracing-subscriber = { workspace = true, features = ["json"] }
+tracing-subscriber = { workspace = true, features = ["json", "env-filter"] }
 tracing-appender = { workspace = true }
+tracing-opentelemetry = { workspace = true }
+opentelemetry-otlp = { workspace = true }
+
 
 # Telegram
 teloxide = { workspace = true, default-features = false, features = [
