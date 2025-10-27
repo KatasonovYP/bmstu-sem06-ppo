@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use adapters::{
-    di_domain_module::di_domain_module,
+    di_domain_module::BuildAppModule,
     postgres::{
         connection::{
             AbstractConnectionPool,
@@ -28,6 +28,7 @@ use domain::ports::storage::{
     UserRepository,
 };
 use sea_orm::EntityTrait;
+use secrecy::ExposeSecret;
 use shaku::HasComponent;
 
 #[derive(Default)]
@@ -39,7 +40,7 @@ impl DropTables {
     async fn default() -> Self {
         let settings = Settings::new("../../config/app.default.yaml").unwrap();
         let postgres_connection_pool = PostgresConnectionPool::new_connection_pool(
-            settings.build_postgres_connection_string(),
+            settings.build_postgres_connection_string().expose_secret(),
         )
         .await
         .unwrap();
@@ -84,7 +85,7 @@ impl TestManager {
     pub async fn default() -> Self {
         let settings = Settings::new("../../config/app.default.yaml").unwrap();
         tracing::debug!("{settings:?}");
-        let module = di_domain_module(settings).await;
+        let module = BuildAppModule::new(&settings).build().await;
         Self {
             user_repo: module.resolve(),
             active_repo: module.resolve(),

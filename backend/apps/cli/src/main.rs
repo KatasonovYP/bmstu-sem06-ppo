@@ -4,7 +4,7 @@ mod controllers;
 use std::sync::Arc;
 
 use adapters::{
-    di_domain_module::di_domain_module,
+    di_domain_module::BuildAppModule,
     settings::Settings,
 };
 use clap::{
@@ -38,7 +38,7 @@ async fn main() {
     let cli = Cli::parse();
 
     let settings = Settings::new("config/app.default.yaml").unwrap();
-    let module = di_domain_module(settings.clone()).await;
+    let module = BuildAppModule::new(&settings).build().await;
 
     let active_cntr = CliActiveController::new(module.resolve());
     let notification_cntr = CliNotificationController::new(module.resolve());

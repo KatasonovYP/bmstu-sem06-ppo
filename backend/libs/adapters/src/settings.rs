@@ -4,9 +4,12 @@ use config::{
     Environment,
     File,
 };
+use secrecy::{
+    ExposeSecret,
+    SecretString,
+};
 use serde_derive::Deserialize;
 
-#[cfg_attr(not(feature = "production"), derive(fake::Dummy))]
 #[derive(Clone, Debug, Deserialize)]
 pub struct Settings {
     pub log_level: String,
@@ -18,15 +21,15 @@ pub struct Settings {
     pub api_cors_origins: Vec<String>,
     pub admin_static_s3_bucket: String,
     pub postgres_user: String,
-    pub postgres_password: String,
+    pub postgres_password: SecretString,
     pub postgres_host: String,
     pub postgres_port: String,
     pub postgres_database: String,
-    pub redis_connection_string: String,
-    pub telegram_bot_token: String,
+    pub redis_connection_string: SecretString,
+    pub telegram_bot_token: SecretString,
     pub admin_user_login: String,
-    pub admin_user_password: String,
-    pub admin_user_token: String,
+    pub admin_user_password: SecretString,
+    pub admin_user_token: SecretString,
     pub admin_user_pid: String,
 }
 
@@ -41,14 +44,17 @@ impl Settings {
         settings.try_deserialize()
     }
 
-    pub fn build_postgres_connection_string(&self) -> String {
-        format!(
-            "postgres://{}:{}@{}:{}/{}",
-            self.postgres_user,
-            self.postgres_password,
-            self.postgres_host,
-            self.postgres_port,
-            self.postgres_database
+    pub fn build_postgres_connection_string(&self) -> SecretString {
+        SecretString::new(
+            format!(
+                "postgres://{}:{}@{}:{}/{}",
+                self.postgres_user,
+                self.postgres_password.expose_secret(),
+                self.postgres_host,
+                self.postgres_port,
+                self.postgres_database
+            )
+            .into(),
         )
     }
 }

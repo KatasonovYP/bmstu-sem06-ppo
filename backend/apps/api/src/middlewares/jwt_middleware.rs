@@ -17,6 +17,7 @@ use jsonwebtoken::{
     Validation,
     decode,
 };
+use secrecy::{ExposeSecret, SecretString};
 use serde::{
     Deserialize,
     Serialize,
@@ -30,11 +31,11 @@ pub struct Claims {
 }
 
 pub struct JwtAuth {
-    pub jwt_secret: String,
+    pub jwt_secret: SecretString,
 }
 
 impl JwtAuth {
-    pub fn new(jwt_secret: String) -> Self {
+    pub fn new(jwt_secret: SecretString) -> Self {
         Self { jwt_secret }
     }
 }
@@ -60,7 +61,7 @@ pub async fn jwt_middleware(
     // Проверяем валидность токена
     let token_data = decode::<Claims>(
         token,
-        &DecodingKey::from_secret(jwt_auth.jwt_secret.as_bytes()),
+        &DecodingKey::from_secret(jwt_auth.jwt_secret.expose_secret().as_bytes()),
         &Validation::new(Algorithm::HS256),
     )
     .map_err(|_| StatusCode::UNAUTHORIZED)?;

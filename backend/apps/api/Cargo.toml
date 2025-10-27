@@ -38,6 +38,7 @@ uuid = { workspace = true, features = ["v4"] }
 chrono = { workspace = true }
 dotenvy = { workspace = true }
 shaku = { workspace = true }
+secrecy = { workspace = true }
 
 # Error handling
 thiserror = { workspace = true }

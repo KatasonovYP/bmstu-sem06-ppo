@@ -31,7 +31,7 @@ impl PostgresConnectionPool {
     }
 
     pub async fn new_connection_pool(
-        connection_string: String,
+        connection_string: &str,
     ) -> Result<Arc<DatabaseConnection>, sea_orm::DbErr> {
         let mut opt = ConnectOptions::new(connection_string);
 
