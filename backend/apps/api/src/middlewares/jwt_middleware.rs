@@ -17,7 +17,10 @@ use jsonwebtoken::{
     Validation,
     decode,
 };
-use secrecy::{ExposeSecret, SecretString};
+use secrecy::{
+    ExposeSecret,
+    SecretString,
+};
 use serde::{
     Deserialize,
     Serialize,

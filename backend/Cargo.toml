@@ -12,6 +12,9 @@ members = [
     "apps/notifier",
 ]
 
+package.version = "0.1.2"
+package.edition = "2024"
+
 [workspace.dependencies]
 
 # Web and networking
@@ -73,8 +76,8 @@ log = "0.4.26"
 tracing = "0.1"
 tracing-appender = "0.2.3"
 tracing-subscriber = "0.3.19"
-tracing-opentelemetry = "0.32.0"
-opentelemetry-otlp = "0.31.0"
+# tracing-opentelemetry = "0.32.0"
+# opentelemetry-otlp = "0.31.0"
 
 # Telegram
 telegram-authorizer = "0.3.0"

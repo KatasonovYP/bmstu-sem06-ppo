@@ -73,6 +73,7 @@ impl AsyncDrop for DropTables {
             .unwrap();
     }
 }
+#[allow(dead_code)]
 pub struct TestManager {
     pub user_repo: Arc<dyn UserRepository>,
     pub active_repo: Arc<dyn ActiveRepository>,

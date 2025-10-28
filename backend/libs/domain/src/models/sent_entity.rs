@@ -1,7 +1,6 @@
 use chrono::NaiveDateTime;
 
-#[cfg_attr(not(feature = "production"), derive(fake::Dummy))]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, fake::Dummy)]
 pub struct SentEntity {
     pub notification_id: u32,
     pub last_message_time: NaiveDateTime,

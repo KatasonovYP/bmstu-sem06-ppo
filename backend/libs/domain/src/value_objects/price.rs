@@ -6,8 +6,7 @@ use std::ops::{
 
 use crate::errors::DomainError;
 
-#[cfg_attr(not(feature = "production"), derive(fake::Dummy))]
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, fake::Dummy)]
 pub struct Currency {
     pub value: String,
 }
@@ -26,8 +25,7 @@ impl Currency {
     }
 }
 
-#[cfg_attr(not(feature = "production"), derive(fake::Dummy))]
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, fake::Dummy)]
 pub struct Price {
     pub amount: f64,
     pub currency: Currency,

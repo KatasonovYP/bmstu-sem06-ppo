@@ -1,7 +1,6 @@
 use crate::value_objects::Username;
 
-#[cfg_attr(not(feature = "production"), derive(fake::Dummy))]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, fake::Dummy)]
 pub struct UserEntity {
     pub user_id: u32,
     pub tg_id: i64,

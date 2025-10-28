@@ -10,7 +10,7 @@ use crate::{
     },
 };
 
-#[cfg_attr(not(feature = "production"), mockall::automock)]
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait UserRepository: Interface + Send + Sync + 'static {
     async fn create_user(&self, user: &UserEntity) -> Result<UserEntity, DomainError>;
@@ -21,7 +21,7 @@ pub trait UserRepository: Interface + Send + Sync + 'static {
     async fn delete_user(&self, user_id: u32) -> Result<UserEntity, DomainError>;
 }
 
-#[cfg_attr(not(feature = "production"), mockall::automock)]
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait ActiveRepository: Interface + Send + Sync + 'static {
     async fn create_active(&self, active: &ActiveEntity) -> Result<ActiveEntity, DomainError>;
@@ -32,7 +32,7 @@ pub trait ActiveRepository: Interface + Send + Sync + 'static {
     async fn delete_active(&self, active_id: u32) -> Result<ActiveEntity, DomainError>;
 }
 
-#[cfg_attr(not(feature = "production"), mockall::automock)]
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait NotificationRepository: Interface + Send + Sync + 'static {
     async fn create_notification(
@@ -58,7 +58,7 @@ pub trait NotificationRepository: Interface + Send + Sync + 'static {
     ) -> Result<NotificationEntity, DomainError>;
 }
 
-#[cfg_attr(not(feature = "production"), mockall::automock)]
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait SentRepository: Interface + Send + Sync + 'static {
     async fn create_sent(&self, sent: &SentEntity) -> Result<SentEntity, DomainError>;
