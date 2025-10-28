@@ -5,7 +5,7 @@ use crate::{
     value_objects::Price,
 };
 
-#[cfg_attr(not(feature = "production"), mockall::automock)]
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait PriceCacheRepository: Interface + Send + Sync + 'static {
     async fn set_price(&self, security_id: &str, price: Price) -> Result<Price, DomainError>;

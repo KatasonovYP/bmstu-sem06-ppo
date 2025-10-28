@@ -22,6 +22,7 @@ impl ApiHealthController {
     pub fn router(self) -> OpenApiRouter {
         OpenApiRouter::new()
             .routes(routes!(get_ping))
+            .routes(routes!(get_version))
             .with_state(Arc::new(self))
     }
 }
@@ -48,14 +49,30 @@ async fn get_ping() -> Result<Json<PingResponse>, ApiError> {
     }))
 }
 
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+pub struct VersionResponse {
+    version: String,
+}
+
+#[utoipa::path(
+        get,
+        path = "/version",
+        tag = "health",
+        description = "Возвращает версию приложения",
+        responses(
+            (status = 200, description = "Version successful", body = VersionResponse),
+        )
+    )]
 #[axum_macros::debug_handler]
 #[tracing::instrument(err(Debug), ret)]
-pub async fn not_found_handler() -> Result<Json<PingResponse>, ApiError> {
-    Err(ApiError::NotFound("Path not exists".to_string()))
+async fn get_version() -> Result<Json<VersionResponse>, ApiError> {
+    Ok(Json(VersionResponse {
+        version: env!("CARGO_PKG_VERSION").to_string(),
+    }))
 }
 
 #[axum_macros::debug_handler]
 #[tracing::instrument(err(Debug), ret)]
-pub async fn global_options_handler() -> Result<Json<PingResponse>, ApiError> {
-    Err(ApiError::NoContent("Options".to_string()))
+pub async fn not_found_handler() -> Result<Json<PingResponse>, ApiError> {
+    Err(ApiError::NotFound("Path not exists".to_string()))
 }

@@ -2,8 +2,7 @@ use regex::Regex;
 
 use crate::errors::DomainError;
 
-#[cfg_attr(not(feature = "production"), derive(fake::Dummy))]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, fake::Dummy)]
 pub struct Username {
     pub value: String,
 }

@@ -13,9 +13,12 @@ stages:
   - deploy-production
   - allure-report
 
+.images:
+  backend-builder: &backend-builder cr.yandex/crpav8o4hj057l1dbgqa/the-qsb/stocks-tracker/backend-builder:latest
+
 .job-test-template: &job-test-template
   when: on_success
-  image: cr.yandex/crpav8o4hj057l1dbgqa/the-qsb/stocks-tracker/backend-builder:latest
+  image: *backend-builder
   dependencies: []
   variables:
     TEST_TYPE: TEST_TYPE_PLACEHOLDER
@@ -70,9 +73,23 @@ job-build-push-ci-images:
     changes:
       - ./infra/ci/*.Dockerfile
 
+job-lint-backend:
+  stage: prepare
+  image: *backend-builder
+  script:
+    - cd backend
+    - cargo clippy --all-targets --all-features -- -D warnings
+
+job-format-backend:
+  stage: prepare
+  image: *backend-builder
+  script:
+    - cd backend
+    - cargo fmt --all -- --check
+
 job-build-backend:
   stage: build
-  image: cr.yandex/crpav8o4hj057l1dbgqa/the-qsb/stocks-tracker/backend-builder:latest
+  image: *backend-builder
   needs:
     - job: job-build-push-ci-images
       optional: true

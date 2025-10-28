@@ -1,5 +1,4 @@
-#[cfg_attr(not(feature = "production"), derive(fake::Dummy))]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, fake::Dummy)]
 pub struct TradeEntity {
     pub trade_no: i64,
     pub trade_time: String,

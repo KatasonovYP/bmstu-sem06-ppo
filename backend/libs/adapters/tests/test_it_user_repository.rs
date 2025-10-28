@@ -84,10 +84,10 @@ async fn test_it_get_deleted_user_error() {
     // Arrange
     let tm = TestManager::default().await;
     let user: UserEntity = Faker.fake();
-    
+
     // Act
     let created_user = tm.user_repo.create_user(&user).await.unwrap();
-    
+
     let deleted_user = tm
         .user_repo
         .delete_user(created_user.user_id)

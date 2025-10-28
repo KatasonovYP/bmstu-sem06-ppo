@@ -11,7 +11,7 @@ use crate::{
     value_objects::Price,
 };
 
-#[cfg_attr(not(feature = "production"), mockall::automock)]
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait AbstractUserService: Interface + Send + Sync + 'static {
     async fn get_user(&self, user_id: u32) -> Result<UserEntity, DomainError>;
@@ -22,7 +22,7 @@ pub trait AbstractUserService: Interface + Send + Sync + 'static {
     async fn delete_user(&self, user_id: u32) -> Result<UserEntity, DomainError>;
 }
 
-#[cfg_attr(not(feature = "production"), mockall::automock)]
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait AbstractActiveService: Interface + Send + Sync + 'static {
     async fn get_active(&self, active_id: u32) -> Result<ActiveEntity, DomainError>;
@@ -35,7 +35,7 @@ pub trait AbstractActiveService: Interface + Send + Sync + 'static {
     async fn sum_user_actives_current_price(&self, user_id: u32) -> Result<Price, DomainError>;
 }
 
-#[cfg_attr(not(feature = "production"), mockall::automock)]
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait AbstractNotificationService: Interface + Send + Sync + 'static {
     async fn get_notification(
@@ -61,7 +61,7 @@ pub trait AbstractNotificationService: Interface + Send + Sync + 'static {
     ) -> Result<NotificationEntity, DomainError>;
 }
 
-#[cfg_attr(not(feature = "production"), mockall::automock)]
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait AbstractSentService: Interface + Send + Sync + 'static {
     async fn get_sent(&self, notification_id: u32) -> Result<SentEntity, DomainError>;
@@ -71,7 +71,7 @@ pub trait AbstractSentService: Interface + Send + Sync + 'static {
     async fn delete_sent(&self, notification_id: u32) -> Result<SentEntity, DomainError>;
 }
 
-#[cfg_attr(not(feature = "production"), mockall::automock)]
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait AbstractPriceOpsService: Interface + Send + Sync + 'static {
     async fn get_actives_bought_price(
@@ -87,13 +87,13 @@ pub trait AbstractPriceOpsService: Interface + Send + Sync + 'static {
     async fn get_price_delta(&self, active: &ActiveEntity) -> Result<Price, DomainError>;
 }
 
-#[cfg_attr(not(feature = "production"), mockall::automock)]
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait AbstractLimitMonitorService: Interface + Send + Sync + 'static {
     async fn send_exeeding_messages(&self) -> Result<(), DomainError>;
 }
 
-#[cfg_attr(not(feature = "production"), mockall::automock)]
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait AbstractPriceCacheService: Interface + Send + Sync + 'static {
     async fn get_price(&self, active: &ActiveEntity) -> Result<Price, DomainError>;

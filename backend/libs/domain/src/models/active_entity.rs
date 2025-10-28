@@ -1,7 +1,6 @@
 use crate::value_objects::Price;
 
-#[cfg_attr(not(feature = "production"), derive(fake::Dummy))]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, fake::Dummy)]
 pub struct ActiveEntity {
     pub active_id: u32,
     pub user_id: u32,

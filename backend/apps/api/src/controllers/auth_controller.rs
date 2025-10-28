@@ -18,7 +18,10 @@ use jsonwebtoken::{
     Header,
     encode,
 };
-use secrecy::{ExposeSecret, SecretString};
+use secrecy::{
+    ExposeSecret,
+    SecretString,
+};
 use serde::{
     Deserialize,
     Serialize,

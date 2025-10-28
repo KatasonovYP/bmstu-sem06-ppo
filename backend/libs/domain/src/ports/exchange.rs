@@ -8,7 +8,7 @@ use crate::{
     },
 };
 
-#[cfg_attr(not(feature = "production"), mockall::automock)]
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait ExchangeRepository: Interface + Send + Sync + 'static {
     async fn get_security(&self, security_id: &str) -> Result<SecurityEntity, DomainError>;
