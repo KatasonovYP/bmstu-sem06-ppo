@@ -84,7 +84,6 @@ impl AbstractNotificationService for NotificationService {
     }
 }
 
-#[cfg(not(feature = "production"))]
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;

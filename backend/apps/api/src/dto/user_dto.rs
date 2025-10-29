@@ -32,7 +32,7 @@ impl TryFrom<UserResponse> for UserEntity {
     type Error = ApiError;
 
     fn try_from(response: UserResponse) -> Result<Self, Self::Error> {
-        let username = Username::new(response.username).map_err(ApiError::from)?;
+        let username = Username::new(&response.username).map_err(ApiError::from)?;
 
         Ok(Self {
             user_id: response.user_id as u32,
@@ -70,7 +70,7 @@ impl TryFrom<UserRequest> for UserEntity {
     type Error = ApiError;
 
     fn try_from(response: UserRequest) -> Result<Self, Self::Error> {
-        let username = Username::new(response.username).map_err(ApiError::from)?;
+        let username = Username::new(&response.username).map_err(ApiError::from)?;
 
         Ok(Self {
             tg_id: response.tg_id,

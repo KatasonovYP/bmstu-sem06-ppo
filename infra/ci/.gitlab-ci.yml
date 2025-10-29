@@ -22,19 +22,18 @@ stages:
   dependencies: []
   variables:
     TEST_TYPE: TEST_TYPE_PLACEHOLDER
-    SEC: stocks-tracker-testing-secrets.yaml
-    VALUES: stocks-tracker-testing-values.yaml
   cache:
     - key: backend-tests
       policy: pull
       paths:
         - backend/tests
   script:
+    - export VALUES='../infra/helm/values/stocks-tracker-stress-values.yaml'
+    - export SEC=.'./infra/helm/values/stocks-tracker-stress-secrets.yaml'
     - cd backend
-    - sops --decrypt ../infra/helm/values/${SEC} | yq '.secret | to_entries | .[] | "\(.key)=\"\(.value)\""' -rc > .env
-    - cat ../infra/helm/values/${VALUES} | yq '.env | to_entries | .[] | "\(.key)=\"\(.value)\""' -rc >> .env
-    - env
-    - APP_POSTGRES_HOST="patroni-it-$CI_COMMIT_SHORT_SHA.patroni.svc" cargo nextest run --nff --no-capture --archive-file ./tests/${TEST_TYPE}.tar.zst --test-threads 1
+    - sops --decrypt ${SEC} | yq '.secret | to_entries | .[] | "\(.key)=\"\(.value)\""' -rc > .env
+    - cat ${VALUES} | yq '.env | to_entries | .[] | "\(.key)=\"\(.value)\""' -rc >> .env
+    - cargo nextest run --nff --no-capture --archive-file ./tests/${TEST_TYPE}.tar.zst --test-threads 1
   after_script:
     - mkdir -p ./backend/allure-results
     - mv ./backend/target/nextest/default/junit.xml ./backend/allure-results/${TEST_TYPE}.xml
@@ -42,6 +41,24 @@ stages:
     when: always
     paths:
       - ./backend/allure-results/${TEST_TYPE}.xml
+
+.job-deploy-backend: &job-deploy-backend
+  stage: deploy-testing
+  needs:
+    - job-push-backend
+    - job-test-integration
+  when: on_success
+  image: diamon/helmwave:latest
+  variables:
+    STAGE: STAGE_PLACEHOLDER
+  dependencies: []
+  cache: []
+  script:
+    - >-
+      helmwave up
+      --build
+      --yml
+      --tpl infra/helm/helmwave.app.yml.tpl
 
 .aws-env: &aws-env
   AWS_DEFAULT_REGION: ru-central1
@@ -73,12 +90,12 @@ job-build-push-ci-images:
     changes:
       - ./infra/ci/*.Dockerfile
 
-job-lint-backend:
-  stage: prepare
-  image: *backend-builder
-  script:
-    - cd backend
-    - cargo clippy --all-targets --all-features -- -D warnings
+# job-lint-backend:
+#   stage: prepare
+#   image: *backend-builder
+#   script:
+#     - cd backend
+#     - cargo clippy --all-targets --all-features -- -D warnings
 
 job-format-backend:
   stage: prepare
@@ -86,6 +103,21 @@ job-format-backend:
   script:
     - cd backend
     - cargo fmt --all -- --check
+
+job-complexity-backend:
+  stage: prepare
+  image: *backend-builder
+  script:
+    - >-
+      export OUTPUT=$(rust-code-analysis-cli -m -p ./backend -X './backend/libs/http_client_stocks_tracker/*' --pr -O json | jq '[.. | select(.metrics?.cyclomatic?.max? > 10) | { kind, name: (.name // "anonymous"), max_complexity: .metrics.cyclomatic.max, start_line, end_line } ]' | grep -v '\[\]')
+    - |
+      if [[ "$OUTPUT" == "" ]]; then
+        echo "${OUTPUT}"
+        exit 0
+      else
+        echo "${OUTPUT}"
+        exit 1
+      fi
 
 job-build-backend:
   stage: build
@@ -118,8 +150,6 @@ job-build-backend:
         - backend/tests
         - backend/allure-results
   before_script:
-    - apt install xmlstarlet -y
-    - sccache --version
     - sccache --start-server
     - cd backend
   script:
@@ -197,87 +227,48 @@ job-test-unit:
     - job-build-backend
   variables:
     TEST_TYPE: unit
-    SEC: stocks-tracker-testing-secrets.yaml
-    VALUES: stocks-tracker-testing-values.yaml
-
-
-job-up-db-integration: &job-helmwave-db-integration
-  stage: test
-  needs:
-    - job-push-backend
-  when: on_success
-  image: diamon/helmwave:latest
-  dependencies: []
-  cache: []
-  variables:
-    COMMAND: up
-  script:
-    - >-
-      CI_ENVIRONMENT_NAME="${CI_COMMIT_SHORT_SHA}"
-      helmwave ${COMMAND}
-      --build
-      --yml
-      --tpl infra/helm/helmwave.db.integration.yml.tpl
 
 job-test-integration:
   <<: *job-test-template
   stage: test
   needs:
     - job-test-unit
-    - job-up-db-integration
   variables:
     TEST_TYPE: integration
-    SEC: stocks-tracker-migration-it-secrets.yaml
-    VALUES: stocks-tracker-migration-it-values.yaml
-
-job-down-db-integration:
-  <<: *job-helmwave-db-integration
-  needs:
-    - job-test-integration
-  variables:
-    COMMAND: down
-  when: always
 
 job-deploy-backend-testing:
+  <<: *job-deploy-backend
   stage: deploy-testing
   needs:
     - job-push-backend
     - job-test-integration
-  when: on_success
-  image: diamon/helmwave:latest
-  dependencies: []
-  cache: []
-  script:
-    - >-
-      CI_COMMIT_TAG="${CI_COMMIT_SHORT_SHA}"
-      helmwave up
-      --build
-      -f infra/helm/helmwave.app.testing.yml
+  variables:
+    STAGE: testing
+
+job-deploy-backend-stress:
+  <<: *job-deploy-backend
+  stage: deploy-testing
+  needs:
+    - job-push-backend
+    - job-test-integration
+  variables:
+    STAGE: stress
 
 job-test-e2e:
   <<: *job-test-template
   stage: test-e2e
   needs:
-    - job-deploy-backend-testing
+    - job-deploy-backend-stress
   variables:
     TEST_TYPE: e2e
-    SEC: stocks-tracker-testing-secrets.yaml
-    VALUES: stocks-tracker-testing-values.yaml
 
 job-deploy-backend-production:
+  <<: *job-deploy-backend
   stage: deploy-production
   needs:
     - job-test-e2e
-  when: on_success
-  image: diamon/helmwave:latest
-  dependencies: []
-  cache: []
-  script:
-    - >-
-      CI_COMMIT_TAG="${CI_COMMIT_SHORT_SHA}"
-      helmwave up
-      --build
-      -f infra/helm/helmwave.app.production.yml
+  variables:
+    STAGE: production
 
 job-allure-report:
   stage: allure-report

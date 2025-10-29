@@ -68,11 +68,23 @@ impl ApiAuthController {
     }
 }
 
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+pub struct LoginQuery {
+    pub user: String,
+}
+
+impl std::fmt::Display for LoginQuery {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.user)
+    }
+}
+
 #[utoipa::path(
     post,
     path = "/login",
     tag = "auth",
     description = "Обменивает tma токен на JWT токен приложения, с метаинформацией о пользователе",
+    params(("user" = LoginQuery, Query, description = "tg data")),
     responses(
         (status = 200, description = "Login successful", body = LoginResponse),
         (status = 401, description = "Unauthorized", body = String)
@@ -92,7 +104,7 @@ async fn login(
         Ok(user) => user,
         Err(_) => {
             let username = Username::new(
-                telegram_user
+                &telegram_user
                     .username
                     .unwrap_or_else(|| format!("user_{}", telegram_user.id)),
             )

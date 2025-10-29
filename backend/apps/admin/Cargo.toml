@@ -4,32 +4,13 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-# stocks_tracker libs
-domain = { path = "../../libs/domain" }
 adapters = { path = "../../libs/adapters" }
 
 # Web and networking
 axum = { workspace = true, features = ["tokio", "http1", "tracing"] }
-axum-macros = { workspace = true }
 async-graphql-axum = { workspace = true }
 sea-orm-pro = { workspace = true }
-tower-http = { workspace = true, features = [
-    "cors",
-    "normalize-path",
-    "request-id",
-    "trace",
-    "fs",
-] }
 http = { workspace = true }
-http-body-util = { workspace = true }
-bytes = { workspace = true }
-tower-layer = { workspace = true }
-utoipa = { workspace = true, features = ["axum_extras"] }
-utoipa-axum = { workspace = true }
-utoipa-swagger-ui = { workspace = true, features = ["axum"] }
-
-# db
-tera = { workspace = true }
 sea-orm = { workspace = true, features = [
     "sqlx-postgres",
     "runtime-tokio-rustls",
@@ -44,35 +25,12 @@ seaography = { workspace = true, features = [
 ] }
 axum-static-s3 = { workspace = true }
 aws-config = { workspace = true, features = ["behavior-version-latest"] }
-aws-sdk-s3 = { workspace = true, features = ["behavior-version-latest"] }
 
 # Async and runtime
 tokio = { workspace = true, features = ["full"] }
-async-trait = { workspace = true }
 
 # Serialization
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-
-# Utilities
-uuid = { workspace = true, features = ["v4"] }
-chrono = { workspace = true }
-dotenvy = { workspace = true }
-shaku = { workspace = true }
 secrecy = { workspace = true }
-
-# Error handling
-thiserror = { workspace = true }
 anyhow = { workspace = true }
-
-# Logging and tracing
-log = { workspace = true }
-tracing = { workspace = true, features = ["attributes"] }
-
-# Telegram
-telegram-authorizer = { workspace = true }
-
-# Testing and mocking (required in main code for interfaces)
-mockall = { workspace = true, optional = true }
-fake = { workspace = true, features = ["chrono", "derive"], optional = true }
-jsonwebtoken = { workspace = true }

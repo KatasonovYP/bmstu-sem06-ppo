@@ -19,7 +19,7 @@ sea-orm-cli generate entity -u "$APP_POSTGRES_CONNECTION_STRING" -o libs/adapter
 ## генерация клиента для e2e тестов
 
 ```bash
-openapi-generator-cli generate -i http://localhost:3000/api/v1 -g rust -o ./libs/e2e
+openapi-generator-cli generate -i http://localhost:3000/api/v1 -g rust -o ./libs/http_client_stocks_tracker
 ```
 
 ## Работа с секретами

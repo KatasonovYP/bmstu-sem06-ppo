@@ -1,5 +1,6 @@
 mod commands;
 mod controllers;
+mod handlers;
 
 use std::sync::Arc;
 
@@ -11,10 +12,6 @@ use clap::{
     Parser,
     ValueEnum,
 };
-use domain::ports::domain::{
-    AbstractLimitMonitorService,
-    AbstractPriceCacheService,
-};
 use shaku::HasComponent;
 
 use crate::{
@@ -25,6 +22,14 @@ use crate::{
         sent_controller::CliSentController,
         user_controller::CliUserController,
     },
+    handlers::{
+        handle_active_command,
+        handle_notification_command,
+        handle_refresh_prices,
+        handle_send_exceeding_messages,
+        handle_sent_command,
+        handle_user_command,
+    },
 };
 
 #[derive(Clone, Debug, ValueEnum)]
@@ -33,98 +38,71 @@ enum OutputFormat {
     Console,
 }
 
+struct AppContext {
+    controllers: Controllers,
+    services: Services,
+}
+
+struct Controllers {
+    active: controllers::active_controller::CliActiveController,
+    notification: controllers::notification_controller::CliNotificationController,
+    user: controllers::user_controller::CliUserController,
+    sent: controllers::sent_controller::CliSentController,
+}
+
+struct Services {
+    limit_monitor: Arc<dyn domain::ports::domain::AbstractLimitMonitorService>,
+    price_cache: Arc<dyn domain::ports::domain::AbstractPriceCacheService>,
+}
+
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
+    let context = initialize_app().await?;
+
+    execute_command(cli.command, context).await?;
+
+    Ok(())
+}
+
+async fn initialize_app() -> Result<AppContext, Box<dyn std::error::Error>> {
     let settings = Settings::new("config/app.default.yaml").unwrap();
+
     let module = BuildAppModule::new(&settings).build().await;
 
-    let active_cntr = CliActiveController::new(module.resolve());
-    let notification_cntr = CliNotificationController::new(module.resolve());
-    let user_cntr = CliUserController::new(module.resolve());
-    let sent_cntr = CliSentController::new(module.resolve());
-    let limit_monitor_service: Arc<dyn AbstractLimitMonitorService> = module.resolve();
-    let price_cache_service: Arc<dyn AbstractPriceCacheService> = module.resolve();
+    let controllers = Controllers {
+        active: CliActiveController::new(module.resolve()),
+        notification: CliNotificationController::new(module.resolve()),
+        user: CliUserController::new(module.resolve()),
+        sent: CliSentController::new(module.resolve()),
+    };
 
-    match &cli.command {
-        Commands::SendExeedingMessages => {
-            limit_monitor_service
-                .send_exeeding_messages()
-                .await
-                .unwrap();
+    let services = Services {
+        limit_monitor: module.resolve(),
+        price_cache: module.resolve(),
+    };
+
+    Ok(AppContext {
+        controllers,
+        services,
+    })
+}
+
+async fn execute_command(
+    command: Commands,
+    context: AppContext,
+) -> Result<(), Box<dyn std::error::Error>> {
+    match command {
+        Commands::SendExeedingMessages => handle_send_exceeding_messages(&context.services).await,
+        Commands::RefreshPrices => handle_refresh_prices(&context.services).await,
+        Commands::User { command } => handle_user_command(command, &context.controllers.user).await,
+        Commands::Active { command } => {
+            handle_active_command(command, &context.controllers.active).await
         },
-        Commands::RefreshPrices => {
-            price_cache_service.refresh_all_prices().await.unwrap();
+        Commands::Notification { command } => {
+            handle_notification_command(command, &context.controllers.notification).await
         },
-        Commands::User {
-            command: UserCommands::Get { user_id },
-        } => user_cntr.get_user(user_id).await,
-        Commands::User {
-            command: cmd @ UserCommands::Create { .. },
-        } => user_cntr.create_user(cmd).await,
-        Commands::User {
-            command: cmd @ UserCommands::Update { .. },
-        } => user_cntr.update_user(cmd).await,
-        Commands::User {
-            command: UserCommands::List,
-        } => user_cntr.list_users().await,
-        Commands::User {
-            command: UserCommands::Delete { user_id },
-        } => user_cntr.delete_user(user_id).await,
-
-        Commands::Active {
-            command: ActiveCommands::Get { active_id },
-        } => active_cntr.get_active(active_id).await,
-        Commands::Active {
-            command: cmd @ ActiveCommands::Create { .. },
-        } => active_cntr.create_active(cmd).await,
-        Commands::Active {
-            command: cmd @ ActiveCommands::Update { .. },
-        } => active_cntr.update_active(cmd).await,
-        Commands::Active {
-            command: ActiveCommands::List,
-        } => active_cntr.list_actives().await,
-        Commands::Active {
-            command: ActiveCommands::ListUserActives { user_id },
-        } => active_cntr.list_user_actives(user_id).await,
-        Commands::Active {
-            command: ActiveCommands::Delete { active_id },
-        } => active_cntr.delete_active(active_id).await,
-
-        Commands::Notification {
-            command: NotificationCommands::Get { notification_id },
-        } => notification_cntr.get_notification(notification_id).await,
-        Commands::Notification {
-            command: cmd @ NotificationCommands::Create { .. },
-        } => notification_cntr.create_notification(cmd).await,
-        Commands::Notification {
-            command: NotificationCommands::List,
-        } => notification_cntr.list_notifications().await,
-        Commands::Notification {
-            command: NotificationCommands::ListActiveNotifications { active_id },
-        } => notification_cntr.list_active_notifications(active_id).await,
-        Commands::Notification {
-            command: cmd @ NotificationCommands::Update { .. },
-        } => notification_cntr.update_notification(cmd).await,
-        Commands::Notification {
-            command: NotificationCommands::Delete { notification_id },
-        } => notification_cntr.delete_notification(notification_id).await,
-
-        Commands::Sent {
-            command: SentCommands::Get { notification_id },
-        } => sent_cntr.get_sent(notification_id).await,
-        Commands::Sent {
-            command: cmd @ SentCommands::Create { .. },
-        } => sent_cntr.create_sent(cmd).await,
-        Commands::Sent {
-            command: cmd @ SentCommands::Update { .. },
-        } => sent_cntr.update_sent(cmd).await,
-        Commands::Sent {
-            command: SentCommands::List,
-        } => sent_cntr.list_sent().await,
-        Commands::Sent {
-            command: SentCommands::Delete { notification_id },
-        } => sent_cntr.delete_sent(notification_id).await,
+        Commands::Sent { command } => handle_sent_command(command, &context.controllers.sent).await,
     }
 }

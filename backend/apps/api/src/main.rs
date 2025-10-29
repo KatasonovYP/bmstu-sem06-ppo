@@ -54,6 +54,8 @@ use utoipa::{
 };
 use utoipa_axum::router::OpenApiRouter;
 
+use crate::controllers::LoginQuery;
+
 #[derive(utoipa::OpenApi)]
 #[openapi(
         info(
@@ -68,7 +70,8 @@ use utoipa_axum::router::OpenApiRouter;
             (name = "notification", description = "CRUD операции над нотификациями пользователя"),
             (name = "user", description = "CRUD операции над пользователями"),
             (name = "auth", description = "Операции, связанные с авторизацией и аутентификацией"),
-        )
+        ),
+        components(schemas(LoginQuery))
     )]
 struct ApiDoc;
 

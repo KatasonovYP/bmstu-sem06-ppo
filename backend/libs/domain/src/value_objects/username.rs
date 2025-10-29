@@ -8,10 +8,12 @@ pub struct Username {
 }
 
 impl Username {
-    pub fn new(value: String) -> Result<Self, DomainError> {
+    pub fn new(value: &str) -> Result<Self, DomainError> {
         let re = Regex::new(r"^[A-Za-z\d_]{5,32}$").unwrap();
-        if re.is_match(value.as_str()) {
-            Ok(Self { value })
+        if re.is_match(value) {
+            Ok(Self {
+                value: value.to_string(),
+            })
         } else {
             Err(DomainError::ValidationError("Invalid Username".to_string()))
         }
