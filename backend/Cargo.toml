@@ -3,7 +3,10 @@ resolver = "3"
 members = [
     "libs/domain",
     "libs/adapters",
-    "libs/e2e",
+    "libs/http_client_stocks_tracker",
+    "libs/test_utils",
+    "libs/test_integration",
+    "libs/test_e2e",
     "apps/admin",
     "apps/api",
     "apps/cli",
@@ -16,6 +19,12 @@ package.version = "0.1.2"
 package.edition = "2024"
 
 [workspace.dependencies]
+
+migration = { path = "apps/migration" }
+adapters = { path = "libs/adapters" }
+domain = { path = "libs/domain" }
+http_client_stocks_tracker = { path = "libs/http_client_stocks_tracker" }
+test_utils = { path = "libs/test_utils" }
 
 # Web and networking
 axum = "0.8.1"

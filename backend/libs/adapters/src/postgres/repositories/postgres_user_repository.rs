@@ -113,7 +113,7 @@ impl TryFrom<users::Model> for UserEntity {
     type Error = DomainError;
 
     fn try_from(orm_user: users::Model) -> Result<Self, Self::Error> {
-        let username = Username::new(orm_user.username)?;
+        let username = Username::new(&orm_user.username)?;
         Ok(UserEntity {
             user_id: orm_user.user_id as u32,
             tg_id: orm_user.tg_id,
@@ -142,7 +142,6 @@ impl From<UserEntity> for users::ActiveModel {
     }
 }
 
-#[cfg(not(feature = "production"))]
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;
@@ -179,7 +178,7 @@ mod tests {
             user_id: id,
             tg_id,
             chat_id: tg_id + 10000,
-            username: Username::new(name.to_owned()).unwrap(),
+            username: Username::new(name).unwrap(),
             first_name: Some("A".to_owned()),
             second_name: Some("B".to_owned()),
         }

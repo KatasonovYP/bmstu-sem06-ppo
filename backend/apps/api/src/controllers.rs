@@ -5,7 +5,10 @@ mod notification_controller;
 mod user_controller;
 
 pub use active_controller::ApiActiveController;
-pub use auth_controller::ApiAuthController;
+pub use auth_controller::{
+    ApiAuthController,
+    LoginQuery,
+};
 pub use health_controller::{
     ApiHealthController,
     not_found_handler,

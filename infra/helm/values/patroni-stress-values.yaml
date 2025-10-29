@@ -1,0 +1,6 @@
+meta:
+  name: patroni-stress
+  namespace: patroni
+
+patroni:
+  replicas: 1

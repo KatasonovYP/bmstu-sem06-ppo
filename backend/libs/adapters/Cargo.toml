@@ -3,11 +3,6 @@ name = "adapters"
 version.workspace = true
 edition.workspace = true
 
-[features]
-default = ["fake", "mockall"]
-production = []
-fake = ["dep:fake"]
-
 [dependencies]
 # stocks_tracker libs
 domain = { path = "../domain" }
@@ -15,7 +10,6 @@ domain = { path = "../domain" }
 # Async and runtime
 tokio = { workspace = true, features = ["full"] }
 async-trait = { workspace = true }
-async-dropper = { workspace = true, features = ["tokio", "simple"] }
 
 # Web and networking
 reqwest = { workspace = true, default-features = false, features = [
@@ -42,9 +36,6 @@ seaography = { workspace = true, features = [
     "field-snake-case",
 ] }
 redis = { workspace = true, features = ["tokio-comp"] }
-
-# Utilities
-uuid = { workspace = true, features = ["v4"] }
 chrono = { workspace = true }
 dotenvy = { workspace = true }
 shaku = { workspace = true }
@@ -54,7 +45,6 @@ secrecy = { workspace = true, features = ["serde"] }
 log = { workspace = true }
 tracing = { workspace = true, features = ["attributes"] }
 tracing-subscriber = { workspace = true, features = ["json", "env-filter"] }
-tracing-appender = { workspace = true }
 # tracing-opentelemetry = { workspace = true }
 # opentelemetry-otlp = { workspace = true }
 
@@ -64,9 +54,4 @@ teloxide = { workspace = true, default-features = false, features = [
     "macros",
     "rustls",
 ] }
-
-# Testing and mocking
-mockall = { workspace = true, optional = true }
-fake = { workspace = true, features = ["chrono", "derive"], optional = true }
-rstest = { workspace = true }
 config = { workspace = true }

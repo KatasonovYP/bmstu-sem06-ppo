@@ -31,6 +31,8 @@ pub struct Settings {
     pub admin_user_password: SecretString,
     pub admin_user_token: SecretString,
     pub admin_user_pid: String,
+    pub e2e_token: SecretString,
+    pub e2e_backend_taget_url: String,
 }
 
 impl Settings {

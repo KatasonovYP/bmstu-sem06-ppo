@@ -91,7 +91,6 @@ impl AbstractActiveService for ActiveService {
     }
 }
 
-#[cfg(not(feature = "production"))]
 #[cfg(test)]
 mod tests {
     use fake::{

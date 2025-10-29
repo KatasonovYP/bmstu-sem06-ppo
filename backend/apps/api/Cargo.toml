@@ -18,39 +18,21 @@ tower-http = { workspace = true, features = [
     "trace",
 ] }
 http = { workspace = true }
-http-body-util = { workspace = true }
-bytes = { workspace = true }
 tower-layer = { workspace = true }
 utoipa = { workspace = true, features = ["axum_extras"] }
 utoipa-axum = { workspace = true }
-utoipa-swagger-ui = { workspace = true, features = ["axum"] }
 
 # Async and runtime
 tokio = { workspace = true, features = ["full"] }
-async-trait = { workspace = true }
 
 # Serialization
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-
-# Utilities
-uuid = { workspace = true, features = ["v4"] }
 chrono = { workspace = true }
-dotenvy = { workspace = true }
 shaku = { workspace = true }
 secrecy = { workspace = true }
-
-# Error handling
-thiserror = { workspace = true }
-
-# Logging and tracing
-log = { workspace = true }
 tracing = { workspace = true, features = ["attributes"] }
 
 # Telegram
 telegram-authorizer = { workspace = true }
-
-# Testing and mocking (required in main code for interfaces)
-mockall = { workspace = true, optional = true }
-fake = { workspace = true, features = ["chrono", "derive"], optional = true }
 jsonwebtoken = { workspace = true }

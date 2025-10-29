@@ -4,7 +4,12 @@ use shaku::Component;
 
 use crate::{
     errors::DomainError,
-    models::UserEntity,
+    models::{
+        ActiveEntity,
+        NotificationEntity,
+        SentEntity,
+        UserEntity,
+    },
     ports::{
         domain::{
             AbstractLimitMonitorService,
@@ -18,6 +23,7 @@ use crate::{
             UserRepository,
         },
     },
+    value_objects::Price,
 };
 
 #[derive(Clone, Component)]
@@ -37,10 +43,32 @@ pub struct LimitMonitorService {
     notification_sender: Arc<dyn NotificationSender>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct Message {
     notification_id: u32,
     message: String,
+}
+
+/// Context for processing a single notification
+struct NotificationContext<'a> {
+    notification: &'a NotificationEntity,
+    active: &'a ActiveEntity,
+    current_price: Price,
+}
+
+/// Result of checking if a notification should be sent
+#[derive(Debug)]
+struct NotificationCheck {
+    should_send: bool,
+    _reason: NotificationCheckReason,
+}
+
+#[derive(Debug, PartialEq)]
+enum NotificationCheckReason {
+    IntervalNotPassed,
+    WithinLimits,
+    LimitExceeded,
+    FirstNotification,
 }
 
 impl LimitMonitorService {
@@ -66,50 +94,184 @@ impl LimitMonitorService {
         &self,
         user: &UserEntity,
     ) -> Result<Vec<Message>, DomainError> {
-        let mut messages: Vec<Message> = vec![];
         let actives = self.active_repo.list_user_actives(user.user_id).await?;
 
+        let mut messages = Vec::new();
         for active in &actives {
-            let notifications = self
-                .notification_repo
-                .list_active_notifications(active.active_id)
-                .await?;
+            let active_messages = self.process_active_notifications(active).await?;
+            messages.extend(active_messages);
+        }
 
-            for notification in notifications {
-                let notification_id = notification.notification_id;
-                let sent = self.sent_repo.get_sent(notification_id).await;
-                let should_send = match sent {
-                    Ok(sent) => {
-                        let now = chrono::Utc::now().naive_utc();
-                        let time_since_last = now.signed_duration_since(sent.last_message_time);
-                        time_since_last.num_seconds() >= notification.resend_interval_sec as i64
-                    },
-                    Err(_) => true,
-                };
+        Ok(messages)
+    }
 
-                if !should_send {
-                    continue;
-                }
+    /// Process all notifications for a single active
+    async fn process_active_notifications(
+        &self,
+        active: &ActiveEntity,
+    ) -> Result<Vec<Message>, DomainError> {
+        let notifications = self
+            .notification_repo
+            .list_active_notifications(active.active_id)
+            .await?;
 
-                let current_price = self.price_cache_service.get_price(active).await?;
-                let is_active_limit_exceeded = notification.limit_lower > current_price
-                    || current_price > notification.limit_upper;
-                if is_active_limit_exceeded {
-                    let message = format!(
-                        "Limit {} - {} is exeeded for security {} with current price: {}",
-                        notification.limit_lower.amount,
-                        notification.limit_upper.amount,
-                        active.security_id,
-                        current_price.amount,
-                    );
-                    messages.push(Message {
-                        message,
-                        notification_id,
-                    });
-                }
+        let mut messages = Vec::new();
+
+        for notification in &notifications {
+            if let Some(message) = self
+                .process_single_notification(notification, active)
+                .await?
+            {
+                messages.push(message);
             }
         }
+
         Ok(messages)
+    }
+
+    /// Process a single notification and return a message if it should be sent
+    async fn process_single_notification(
+        &self,
+        notification: &NotificationEntity,
+        active: &ActiveEntity,
+    ) -> Result<Option<Message>, DomainError> {
+        // Check if we should send based on resend interval
+        let resend_check = self.check_resend_interval(notification).await?;
+        if !resend_check.should_send {
+            return Ok(None);
+        }
+
+        // Get current price and check limits
+        let current_price = self.price_cache_service.get_price(active).await?;
+
+        let context = NotificationContext {
+            notification,
+            active,
+            current_price,
+        };
+
+        let limit_check = self.check_price_limits(&context);
+
+        if limit_check.should_send {
+            let message = self.create_notification_message(&context);
+            Ok(Some(Message {
+                notification_id: notification.notification_id,
+                message,
+            }))
+        } else {
+            Ok(None)
+        }
+    }
+
+    /// Check if enough time has passed since the last notification was sent
+    async fn check_resend_interval(
+        &self,
+        notification: &NotificationEntity,
+    ) -> Result<NotificationCheck, DomainError> {
+        match self.sent_repo.get_sent(notification.notification_id).await {
+            Ok(sent) => {
+                let should_send = self.is_resend_interval_exceeded(notification, &sent);
+                Ok(NotificationCheck {
+                    should_send,
+                    _reason: if should_send {
+                        NotificationCheckReason::LimitExceeded
+                    } else {
+                        NotificationCheckReason::IntervalNotPassed
+                    },
+                })
+            },
+            Err(_) => {
+                // No previous send record, so this is the first notification
+                Ok(NotificationCheck {
+                    should_send: true,
+                    _reason: NotificationCheckReason::FirstNotification,
+                })
+            },
+        }
+    }
+
+    /// Check if the resend interval has been exceeded
+    fn is_resend_interval_exceeded(
+        &self,
+        notification: &NotificationEntity,
+        sent: &SentEntity,
+    ) -> bool {
+        let now = chrono::Utc::now().naive_utc();
+        let time_since_last = now.signed_duration_since(sent.last_message_time);
+        time_since_last.num_seconds() >= notification.resend_interval_sec as i64
+    }
+
+    /// Check if the current price exceeds the configured limits
+    fn check_price_limits(&self, context: &NotificationContext) -> NotificationCheck {
+        let is_below_lower = context.current_price < context.notification.limit_lower;
+        let is_above_upper = context.current_price > context.notification.limit_upper;
+
+        let should_send = is_below_lower || is_above_upper;
+
+        NotificationCheck {
+            should_send,
+            _reason: if should_send {
+                NotificationCheckReason::LimitExceeded
+            } else {
+                NotificationCheckReason::WithinLimits
+            },
+        }
+    }
+
+    /// Create a formatted notification message
+    fn create_notification_message(&self, context: &NotificationContext) -> String {
+        format!(
+            "Limit {} - {} is exceeded for security {} with current price: {}",
+            context.notification.limit_lower.amount,
+            context.notification.limit_upper.amount,
+            context.active.security_id,
+            context.current_price.amount,
+        )
+    }
+
+    /// Send messages to a user and update sent records
+    async fn send_user_messages(
+        &self,
+        user: &UserEntity,
+        messages: Vec<Message>,
+    ) -> Result<(), DomainError> {
+        if messages.is_empty() {
+            return Ok(());
+        }
+
+        let combined_message = self.combine_messages(&messages);
+
+        self.notification_sender
+            .send_message(user.chat_id, combined_message)
+            .await?;
+
+        self.update_sent_records(messages).await?;
+
+        Ok(())
+    }
+
+    /// Combine multiple messages into a single string
+    fn combine_messages(&self, messages: &[Message]) -> String {
+        messages
+            .iter()
+            .map(|m| &m.message)
+            .fold(String::new(), |mut acc, msg| {
+                if !acc.is_empty() {
+                    acc.push('\n');
+                }
+                acc.push_str(msg);
+                acc
+            })
+    }
+
+    /// Update sent records for all notifications that were sent
+    async fn update_sent_records(&self, messages: Vec<Message>) -> Result<(), DomainError> {
+        for message in messages {
+            self.sent_repo
+                .create_sent_now(message.notification_id)
+                .await?;
+        }
+        Ok(())
     }
 }
 
@@ -118,28 +280,15 @@ impl AbstractLimitMonitorService for LimitMonitorService {
     #[tracing::instrument(skip(self), err(Debug), ret)]
     async fn send_exeeding_messages(&self) -> Result<(), DomainError> {
         let users = self.user_repo.list_users().await?;
+
         for user in &users {
             let messages = self.get_user_exeeding_messages(user).await?;
-            if !messages.is_empty() {
-                let total_message = messages
-                    .iter()
-                    .map(|x| &x.message)
-                    .fold(String::new(), |acc, s| acc + s + "\n");
-                self.notification_sender
-                    .send_message(user.chat_id, total_message)
-                    .await?;
-                for message in messages {
-                    self.sent_repo
-                        .create_sent_now(message.notification_id)
-                        .await?;
-                }
-            }
+            self.send_user_messages(user, messages).await?;
         }
+
         Ok(())
     }
 }
-
-#[cfg(not(feature = "production"))]
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;

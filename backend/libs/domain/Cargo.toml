@@ -3,11 +3,6 @@ name = "domain"
 version.workspace = true
 edition.workspace = true
 
-[features]
-default = ["fake", "mockall"]
-production = []
-fake = ["dep:fake"]
-
 [dependencies]
 # Async and runtime
 tokio = { workspace = true, features = ["full"] }
@@ -24,6 +19,6 @@ thiserror = { workspace = true }
 tracing = { workspace = true, features = ["attributes"] }
 
 # Testing and mocking (required in main code for interfaces)
-mockall = { workspace = true, optional = true }
-fake = { workspace = true, features = ["chrono", "derive"], optional = true }
+mockall = { workspace = true }
+fake = { workspace = true, features = ["chrono", "derive"] }
 shaku = { workspace = true }

@@ -88,7 +88,6 @@ impl AbstractPriceOpsService for PriceOpsService {
     }
 }
 
-#[cfg(not(feature = "production"))]
 #[cfg(test)]
 mod tests {
     use fake::{

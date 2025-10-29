@@ -10,20 +10,6 @@ adapters = { path = "../../libs/adapters" }
 
 # Async and runtime
 tokio = { workspace = true, features = ["full"] }
-
-# Utilities
-uuid = { workspace = true, features = ["v4"] }
 chrono = { workspace = true }
-regex = { workspace = true }
-rand = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
-dotenvy = { workspace = true }
 shaku = { workspace = true }
-
-# Error handling
-thiserror = { workspace = true }
-
-# Logging and tracing
-log = { workspace = true }
-tracing = { workspace = true, features = ["attributes"] }
-tracing-subscriber = { workspace = true, features = ["json"] }

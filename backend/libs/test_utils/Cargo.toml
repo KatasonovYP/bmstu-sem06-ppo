@@ -1,0 +1,21 @@
+[package]
+name = "test_utils"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+# stocks_tracker libs
+adapters = { workspace = true }
+domain = { workspace = true }
+migration = { workspace = true }
+
+# Database
+sea-orm = { workspace = true, features = [
+    "sqlx-postgres",
+    "runtime-tokio-rustls",
+    "macros",
+    "mock",
+] }
+shaku = { workspace = true }
+secrecy = { workspace = true, features = ["serde"] }
+tracing = { workspace = true, features = ["attributes"] }

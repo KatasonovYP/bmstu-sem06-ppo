@@ -78,7 +78,6 @@ impl AbstractPriceCacheService for PriceCacheService {
     }
 }
 
-#[cfg(not(feature = "production"))]
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;

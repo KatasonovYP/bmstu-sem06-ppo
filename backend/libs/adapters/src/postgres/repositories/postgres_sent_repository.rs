@@ -118,7 +118,6 @@ impl From<SentEntity> for sent::ActiveModel {
     }
 }
 
-#[cfg(not(feature = "production"))]
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;

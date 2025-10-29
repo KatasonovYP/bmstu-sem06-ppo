@@ -1,0 +1,18 @@
+[package]
+name = "test_integration"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+# stocks_tracker libs
+adapters = { workspace = true }
+domain = { workspace = true }
+test_utils = { workspace = true }
+
+# Async and runtime
+tokio = { workspace = true, features = ["full"] }
+shaku = { workspace = true }
+
+# Testing and mocking
+mockall = { workspace = true }
+fake = { workspace = true, features = ["chrono", "derive"] }
