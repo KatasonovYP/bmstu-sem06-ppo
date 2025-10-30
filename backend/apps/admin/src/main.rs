@@ -164,6 +164,7 @@ async fn graphql_handler(
 }
 
 use aws_config::{
+    BehaviorVersion,
     Region,
     SdkConfig as AwsSdkConfig,
 };
@@ -177,6 +178,7 @@ async fn main() -> anyhow::Result<()> {
     let s3_config = AwsSdkConfig::builder()
         .endpoint_url("https://storage.yandexcloud.net".to_string())
         .region(Region::new("ru-central1".to_string()))
+        .behavior_version(BehaviorVersion::v2025_08_07())
         .build();
 
     let s3_origin = S3OriginBuilder::new()

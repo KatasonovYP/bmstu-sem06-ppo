@@ -3,4 +3,4 @@ meta:
   namespace: patroni
 
 patroni:
-  replicas: 1
+  replicas: 2

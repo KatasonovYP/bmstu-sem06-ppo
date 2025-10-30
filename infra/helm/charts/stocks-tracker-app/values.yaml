@@ -51,3 +51,6 @@ redis:
   storage:
     size: 1Gi
   # password: default-redis-password
+
+env:
+  RUST_BACKTRACE: 1

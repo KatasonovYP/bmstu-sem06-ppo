@@ -12,6 +12,8 @@ repositories:
     url: https://helm.releases.hashicorp.com
   - name: kubernetes-dashboard
     url: https://kubernetes.github.io/dashboard/
+  - name: influxdata
+    url: https://helm.influxdata.com/
 
 .options: &options
   create_namespace: true
@@ -63,21 +65,39 @@ releases:
     values:
       - infra/helm/values/loki-stack-values.yaml
 
-  - name: vault
-    namespace: vault
+  - name: influxdb
+    namespace: influxdb
     <<: *options
     chart:
-      name: hashicorp/vault
-      version: 0.28.0
+      name: influxdata/influxdb
+    # values:
+    #   - infra/helm/values/influxdb-values.yaml
+
+
+  # - name: k6-operator
+  #   namespace: k6-operator
+  #   <<: *options
+  #   chart:
+  #     name: grafana/k6-operator
+  #     version: 3.16.0
+    # values:
+      # - infra/helm/values/loki-stack-values.yaml
+
+  # - name: vault
+  #   namespace: vault
+  #   <<: *options
+  #   chart:
+  #     name: hashicorp/vault
+  #     version: 0.28.0
     # values:
     #   - infra/helm/values/vault-values.yaml
 
-  - name: kubernetes-dashboard
-    namespace: kubernetes-dashboard
-    <<: *options
-    chart:
-      name: kubernetes-dashboard/kubernetes-dashboard
-      version: 7.13.0
+  # - name: kubernetes-dashboard
+  #   namespace: kubernetes-dashboard
+  #   <<: *options
+  #   chart:
+  #     name: kubernetes-dashboard/kubernetes-dashboard
+  #     version: 7.13.0
 
   - name: stocks-tracker-side-infra
     namespace: stocks-tracker
