@@ -18,9 +18,22 @@ stages:
 
 .images:
   backend-builder: &backend-builder cr.yandex/crpav8o4hj057l1dbgqa/the-qsb/stocks-tracker/backend-builder:latest
-  kaniko: &kaniko
+
+.job-kaniko-push: &job-kaniko-push
+  image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
+  dependencies: []
+  cache: []
+  script:
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"${CI_REGISTRY}\":{\"auth\":\"$(echo -n "json_key:${CI_REGISTRY_KEY}" | base64 | tr -d '\n' )\"}}}" > /kaniko/.docker/config.json
+    - >-
+      /kaniko/executor
+      --dockerfile "${CI_PROJECT_DIR}/${DOCKERFILE}"
+      --build-arg "APP=${APP}"
+      --destination "${CI_REGISTRY}/${CI_PROJECT_PATH}/${APP}:${CI_COMMIT_SHORT_SHA}"
+      --destination "${CI_REGISTRY}/${CI_PROJECT_PATH}/${APP}:latest"
 
 .job-test-backend: &job-test-backend
   when: on_success
@@ -72,24 +85,16 @@ stages:
   S3_BUCKET: allure.stocks-tracker.ru
 
 job-build-push-ci-images:
+  <<: *job-kaniko-push
   stage: prepare
-  image: *kaniko
-  dependencies: []
-  cache: []
   parallel:
     matrix:
-      - DOCKERFILE:
+      - APP:
         - backend-builder
         - reporter
         - patroni
-  script:
-    - mkdir -p /kaniko/.docker
-    - echo "{\"auths\":{\"${CI_REGISTRY}\":{\"auth\":\"$(echo -n "json_key:${CI_REGISTRY_KEY}" | base64 | tr -d '\n' )\"}}}" > /kaniko/.docker/config.json
-    - >-
-      /kaniko/executor
-      --context "${CI_PROJECT_DIR}"
-      --dockerfile "${CI_PROJECT_DIR}/infra/ci/${DOCKERFILE}.Dockerfile"
-      --destination "${CI_REGISTRY}/${CI_PROJECT_PATH}/${DOCKERFILE}:latest"
+  variables:
+    DOCKERFILE: infra/ci/${APP}.Dockerfile
   only:
     changes:
       - ./infra/ci/*.Dockerfile
@@ -150,12 +155,10 @@ job-build-backend:
     - sccache --show-stats
 
 job-push-backend:
+  <<: *job-kaniko-push
   stage: build
-  when: on_success
   needs:
     - job-build-backend
-  image: *kaniko
-  dependencies: []
   cache:
     - key: backend-bin
       policy: pull
@@ -169,16 +172,8 @@ job-push-backend:
         - notifier
         - refresher
         - migration
-  script:
-    - mkdir -p /kaniko/.docker
-    - echo "{\"auths\":{\"${CI_REGISTRY}\":{\"auth\":\"$(echo -n "json_key:${CI_REGISTRY_KEY}" | base64 | tr -d '\n' )\"}}}" > /kaniko/.docker/config.json
-    - >-
-      /kaniko/executor
-      --context "${CI_PROJECT_DIR}/backend"
-      --dockerfile "${CI_PROJECT_DIR}/backend/Dockerfile"
-      --build-arg "APP=${APP}"
-      --destination "${CI_REGISTRY}/${CI_PROJECT_PATH}/${APP}:${CI_COMMIT_SHORT_SHA}"
-      --destination "${CI_REGISTRY}/${CI_PROJECT_PATH}/${APP}:latest"
+  variables:
+    DOCKERFILE: backend/Dockerfile
 
 job-test-unit:
   <<: *job-test-backend
@@ -232,8 +227,7 @@ job-deploy-backend-production:
 job-allure-report:
   stage: allure-report
   when: always
-  variables:
-    <<: *aws-env
+  variables: *aws-env
   needs:
     - job-test-unit
     - job-test-integration
@@ -252,3 +246,44 @@ job-allure-report:
     reports:
       junit: ./backend/allure-results/*.xml
 
+job-build-frontend:
+  stage: build
+  when: on_success
+  variables:
+    API: https://api.stocks-tracker.ru
+  image: node:23.11.0-slim
+  dependencies: []
+  cache: []
+  before_script:
+    - cd frontend
+    - yarn
+  script:
+    - yarn nx build app
+  artifacts:
+    paths:
+      - frontend/dist/apps/app/
+    when: always
+  only:
+    changes:
+      - frontend
+      - docs
+
+job-deploy-frontend:
+  stage: deploy-testing
+  when: on_success
+  needs:
+    - job-build-frontend
+    - job-test-integration
+  variables: *aws-env
+  dependencies: []
+  cache: []
+  image:
+    name: amazon/aws-cli:2.27.4
+    entrypoint: ["/usr/bin/env"]
+  script:
+    - >-
+      aws s3 sync ./frontend/dist/apps/app ${S3_BUCKET}
+  only:
+    changes:
+      - frontend
+      - docs

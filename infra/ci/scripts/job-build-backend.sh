@@ -21,14 +21,16 @@ cargo nextest archive --release --archive-file ./tests/e2e.tar.zst -p test_e2e
 # тут костыль с заполнением тестов тегом skipped
 mkdir -p ./allure-results
 
-cargo nextest run --release --lib --nff --no-capture || true
-xmlstarlet ed -L -P  -s '//testcase' -t elem -n skipped -v '' -d '//failure' ./target/nextest/default/junit.xml
-mv ./target/nextest/default/junit.xml ./allure-results/unit.xml
+TEST_FILE=./target/nextest/default/junit.xml
 
-cargo nextest run --release --test "*it*" --nff --no-capture || true
-xmlstarlet ed -L -P  -s '//testcase' -t elem -n skipped -v '' -d '//failure' ./target/nextest/default/junit.xml
-mv ./target/nextest/default/junit.xml ./allure-results/integration.xml
+cargo nextest run --release --nff --no-capture --lib || true
+xmlstarlet ed -L -P  -s '//testcase' -t elem -n skipped -v '' -d '//failure' ${TEST_FILE}
+mv ${TEST_FILE} ./allure-results/unit.xml
 
-cargo nextest run --release --test "*e2e*" --nff --no-capture || true
-xmlstarlet ed -L -P  -s '//testcase' -t elem -n skipped -v '' -d '//failure' ./target/nextest/default/junit.xml
-mv ./target/nextest/default/junit.xml ./allure-results/e2e.xml
+cargo nextest run --release --nff --no-capture -p test_integration || true
+xmlstarlet ed -L -P  -s '//testcase' -t elem -n skipped -v '' -d '//failure' ${TEST_FILE}
+mv ${TEST_FILE} ./allure-results/integration.xml
+
+cargo nextest run --release --nff --no-capture -p test_e2e || true
+xmlstarlet ed -L -P  -s '//testcase' -t elem -n skipped -v '' -d '//failure' ${TEST_FILE}
+mv ${TEST_FILE} ./allure-results/e2e.xml
