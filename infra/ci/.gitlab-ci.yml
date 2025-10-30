@@ -19,7 +19,7 @@ stages:
 .images:
   backend-builder: &backend-builder cr.yandex/crpav8o4hj057l1dbgqa/the-qsb/stocks-tracker/backend-builder:latest
 
-.job-test-template: &job-test-template
+.job-test-backend: &job-test-backend
   when: on_success
   image: *backend-builder
   dependencies: []
@@ -111,16 +111,7 @@ job-complexity-backend:
   stage: checks
   image: *backend-builder
   script:
-    - >-
-      export OUTPUT=$(rust-code-analysis-cli -m -p ./backend -X './backend/libs/http_client_stocks_tracker/*' --pr -O json | jq '[.. | select(.metrics?.cyclomatic?.max? > 10) | { kind, name: (.name // "anonymous"), max_complexity: .metrics.cyclomatic.max, start_line, end_line } ]' | grep -v '\[\]')
-    - |
-      if [[ "$OUTPUT" == "" ]]; then
-        echo "${OUTPUT}"
-        exit 0
-      else
-        echo "${OUTPUT}"
-        exit 1
-      fi
+    - ./infra/ci/scripts/job-complexity-backend.sh
 
 job-build-backend:
   stage: build
@@ -152,41 +143,8 @@ job-build-backend:
       paths:
         - backend/tests
         - backend/allure-results
-  before_script:
-    - sccache --start-server
-    - cd backend
   script:
-    - cargo +nightly build --release --all-targets
-    - mkdir -p ./bin
-    - find ./target/${CARGO_BUILD_TARGET}/release -maxdepth 1 -type f -executable | xargs -I '{}' mv {} ./bin
-    - mkdir -p ./tests
-    # пакуем исполняемые файлы тестов в архивы, чтобы передать их в следующие задачи
-    - cargo nextest archive --release --lib --archive-file ./tests/unit.tar.zst
-    - cargo nextest archive --release --test "*it*" --archive-file ./tests/integration.tar.zst
-    - cargo nextest archive --release --test "*e2e*" --archive-file ./tests/e2e.tar.zst
-    # тут костыль с заполнением тестов тегом skipped
-    - mkdir -p ./allure-results
-    - cargo nextest run --release --lib --nff --no-capture || true
-    - >-
-      xmlstarlet ed -L -P 
-      -s '//testcase' -t elem -n skipped -v ''
-      -d '//failure'
-      ./target/nextest/default/junit.xml
-    - mv ./target/nextest/default/junit.xml ./allure-results/unit.xml
-    - cargo nextest run --release --test "*it*" --nff --no-capture || true
-    - >-
-      xmlstarlet ed -L -P 
-      -s '//testcase' -t elem -n skipped -v ''
-      -d '//failure'
-      ./target/nextest/default/junit.xml
-    - mv ./target/nextest/default/junit.xml ./allure-results/integration.xml
-    - cargo nextest run --release --test "*e2e*" --nff --no-capture || true
-    - >-
-      xmlstarlet ed -L -P 
-      -s '//testcase' -t elem -n skipped -v ''
-      -d '//failure'
-      ./target/nextest/default/junit.xml
-    - mv ./target/nextest/default/junit.xml ./allure-results/e2e.xml
+    - ./infra/ci/scripts/job-build-backend.sh
   after_script:
     - sccache --show-stats
 
@@ -224,7 +182,7 @@ job-push-backend:
       --destination "${CI_REGISTRY}/${CI_PROJECT_PATH}/${APP}:latest"
 
 job-test-unit:
-  <<: *job-test-template
+  <<: *job-test-backend
   stage: test-unit
   needs:
     - job-build-backend
@@ -240,7 +198,7 @@ job-deploy-backend-stress:
     STAGE: stress
 
 job-test-integration:
-  <<: *job-test-template
+  <<: *job-test-backend
   stage: test-integration
   needs:
     - job-deploy-backend-stress
@@ -249,7 +207,7 @@ job-test-integration:
     TEST_TYPE: integration
 
 job-test-e2e:
-  <<: *job-test-template
+  <<: *job-test-backend
   stage: test-e2e
   needs:
     - job-test-integration
@@ -288,105 +246,10 @@ job-allure-report:
         - backend/allure-results
   image: cr.yandex/crpav8o4hj057l1dbgqa/the-qsb/stocks-tracker/reporter:latest
   script:
-    - aws s3 sync s3://${S3_BUCKET}/${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME}/latest/history ./backend/allure-results/history
-    - export BUILD_ORDER=$(aws s3 ls s3://${S3_BUCKET}/${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME}/ | wc -l)
-    - |
-      cat <<EOF > ./backend/allure-results/environment.properties
-      branch=${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME}
-      build_number=${CI_PIPELINE_ID}
-      EOF
-    - |
-      cat <<EOF > ./backend/allure-results/executor.json
-      {
-        "name": "${CI_RUNNER_ID}",
-        "type": "gitlab",
-        "buildUrl": "${CI_PIPELINE_URL}",
-        "buildOrder": ${BUILD_ORDER},
-        "buildName": "${CI_COMMIT_TITLE}",
-        "reportUrl": "https://${S3_BUCKET}/${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME}/${CI_COMMIT_SHORT_SHA}"
-      }
-      EOF
-    - ls backend/allure-results -la
-    - cat ./backend/allure-results/executor.json
-    - >-
-      xmlstarlet ed -L -P 
-      -i '/testsuites/testsuite[not(@timestamp)]'
-      -t attr -n timestamp
-      -v "$(xmlstarlet sel -t -v '/testsuites/@timestamp' ./backend/allure-results/unit.xml)"
-      ./backend/allure-results/unit.xml
-    - >-
-      xmlstarlet ed -L -P 
-      -i '/testsuites/testsuite[not(@timestamp)]'
-      -t attr -n timestamp
-      -v "$(xmlstarlet sel -t -v '/testsuites/@timestamp' ./backend/allure-results/integration.xml)"
-      ./backend/allure-results/integration.xml
-    - >-
-      xmlstarlet ed -L -P 
-      -i '/testsuites/testsuite[not(@timestamp)]'
-      -t attr -n timestamp
-      -v "$(xmlstarlet sel -t -v '/testsuites/@timestamp' ./backend/allure-results/e2e.xml)"
-      ./backend/allure-results/e2e.xml
-    - allure --version
-    - allure --verbose generate -c ./backend/allure-results -o ./backend/allure-report
-    - >-
-      aws s3 sync 
-      ./backend/allure-report
-      s3://${S3_BUCKET}/${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME}/latest
-    - >-
-      aws s3 sync 
-      ./backend/allure-report
-      s3://${S3_BUCKET}/${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME}/${CI_COMMIT_SHORT_SHA}
-    - cat ./backend/allure-report/widgets/executors.json
-    - echo "https://${S3_BUCKET}/${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME}/latest"
-    - 'curl --request POST --header "PRIVATE-TOKEN: $CI_JOB_TOKEN" "https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/merge_requests/$CI_MERGE_REQUEST_IID/notes?body=hello"'
-
+    - ./infra/ci/scripts/job-allure-report.sh
   artifacts:
     paths:
       - ./backend/allure-report
     reports:
       junit: ./backend/allure-results/*.xml
 
-job-build-frontend:
-  stage: build
-  when: on_success
-  variables:
-    API: https://api.stocks-tracker.ru
-    ENVIRONMENT_NAME: "testing"
-  environment: $ENVIRONMENT_NAME
-  image: node:23.11.0-slim
-  dependencies: []
-  cache: []
-  before_script:
-    - cd frontend
-    - yarn
-  script:
-    - yarn nx build app
-  artifacts:
-    paths:
-      - frontend/dist/apps/app/
-    when: always
-  only:
-    changes:
-      - frontend
-      - docs
-
-job-deploy-frontend:
-  stage: deploy-testing
-  when: on_success
-  needs:
-    - job-build-frontend
-    - job-test-integration
-  variables:
-    <<: *aws-env
-  dependencies: []
-  cache: []
-  image:
-    name: amazon/aws-cli:2.27.4
-    entrypoint: ["/usr/bin/env"]
-  script:
-    - >-
-      aws s3 sync ./frontend/dist/apps/app ${S3_BUCKET}
-  only:
-    changes:
-      - frontend
-      - docs
