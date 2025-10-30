@@ -1,0 +1,11 @@
+meta:
+  name: stocks-tracker-testing
+  namespace: stocks-tracker
+
+ingress:
+  api:
+    host: api.tst.stocks-tracker.ru
+    path: /
+  admin:
+    host: admin.tst.stocks-tracker.ru
+    path: /

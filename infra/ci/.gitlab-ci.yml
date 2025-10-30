@@ -135,10 +135,10 @@ job-build-backend:
     # SCCACHE_ENDPOINT: storage.yandexcloud.net
     # SCCACHE_S3_KEY_PREFIX: cache/sccache
   cache:
-    # - key: sccache-local
-    #   policy: pull-push
-    #   paths:
-    #     - .sccache-cache
+    - key: sccache-local
+      policy: pull-push
+      paths:
+        - /root/.cache/sccache
     - key: backend-bin
       policy: push
       paths:

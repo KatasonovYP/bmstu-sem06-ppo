@@ -18,12 +18,6 @@ ingress:
 
 port: 3000
 
-scaling:
-  minReplicas: 1
-  minRoReplicas: 2
-  maxReplicas: 1
-  averageUtilization: 70
-
 rollingUpdate:
   maxUnavailable: 5
   maxSurge: 5
