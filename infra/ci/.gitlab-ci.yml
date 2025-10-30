@@ -18,6 +18,9 @@ stages:
 
 .images:
   backend-builder: &backend-builder cr.yandex/crpav8o4hj057l1dbgqa/the-qsb/stocks-tracker/backend-builder:latest
+  kaniko: &kaniko
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
 
 .job-test-backend: &job-test-backend
   when: on_success
@@ -70,9 +73,7 @@ stages:
 
 job-build-push-ci-images:
   stage: prepare
-  image:
-    name: gcr.io/kaniko-project/executor:debug
-    entrypoint: [""]
+  image: *kaniko
   dependencies: []
   cache: []
   parallel:
@@ -153,9 +154,7 @@ job-push-backend:
   when: on_success
   needs:
     - job-build-backend
-  image:
-    name: gcr.io/kaniko-project/executor:debug
-    entrypoint: [""]
+  image: *kaniko
   dependencies: []
   cache:
     - key: backend-bin
