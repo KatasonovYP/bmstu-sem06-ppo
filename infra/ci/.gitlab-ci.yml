@@ -11,8 +11,8 @@ stages:
   - test-unit
   - deploy-stress
   - test-integration
-  - deploy-testing
   - test-e2e
+  - deploy-testing
   - deploy-production
   - allure-report
 
@@ -243,26 +243,26 @@ job-test-integration:
   <<: *job-test-template
   stage: test-integration
   needs:
+    - job-deploy-backend-stress
     - job-test-unit
   variables:
     TEST_TYPE: integration
-
-job-deploy-backend-testing:
-  <<: *job-deploy-backend
-  stage: deploy-testing
-  needs:
-    - job-push-backend
-    - job-test-integration
-  variables:
-    STAGE: testing
 
 job-test-e2e:
   <<: *job-test-template
   stage: test-e2e
   needs:
-    - job-deploy-backend-stress
+    - job-test-integration
   variables:
     TEST_TYPE: e2e
+
+job-deploy-backend-testing:
+  <<: *job-deploy-backend
+  stage: deploy-testing
+  needs:
+    - job-test-e2e
+  variables:
+    STAGE: testing
 
 job-deploy-backend-production:
   <<: *job-deploy-backend
