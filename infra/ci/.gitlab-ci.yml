@@ -236,6 +236,14 @@ job-test-integration:
   variables:
     TEST_TYPE: integration
 
+job-deploy-backend-stress:
+  <<: *job-deploy-backend
+  stage: deploy-testing
+  needs:
+    - job-push-backend
+  variables:
+    STAGE: stress
+
 job-deploy-backend-testing:
   <<: *job-deploy-backend
   stage: deploy-testing
@@ -244,15 +252,6 @@ job-deploy-backend-testing:
     - job-test-integration
   variables:
     STAGE: testing
-
-job-deploy-backend-stress:
-  <<: *job-deploy-backend
-  stage: deploy-testing
-  needs:
-    - job-push-backend
-    - job-test-integration
-  variables:
-    STAGE: stress
 
 job-test-e2e:
   <<: *job-test-template

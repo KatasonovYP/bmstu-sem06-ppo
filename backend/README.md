@@ -47,3 +47,11 @@ export SOPS_AGE_KEY_FILE=$(pwd)/key.txt
 export SOPS_AGE_RECIPIENTS=age18yxwsntjasphxzgtymdnrz2ggs2zd86rnyfpaeh2pk6gz42asgyqxd8r8a
 EDITOR="code --wait" helm secrets edit path/to/sops/secret
 ```
+
+## пример раскатки приложения с рук
+
+важно, что можно поменять только параметры, без пересборки в CI код останется прежним
+
+```bash
+CI_COMMIT_SHORT_SHA=73302d69 STAGE=stress helmwave up --build --yml --tpl infra/helm/helmwave.app.yml.tpl
+```
