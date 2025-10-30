@@ -6,8 +6,11 @@ workflow:
 
 stages:
   - prepare
+  - checks
   - build
-  - test
+  - test-unit
+  - deploy-stress
+  - test-integration
   - deploy-testing
   - test-e2e
   - deploy-production
@@ -91,21 +94,21 @@ job-build-push-ci-images:
       - ./infra/ci/*.Dockerfile
 
 # job-lint-backend:
-#   stage: prepare
+#   stage: checks
 #   image: *backend-builder
 #   script:
 #     - cd backend
 #     - cargo clippy --all-targets --all-features -- -D warnings
 
 job-format-backend:
-  stage: prepare
+  stage: checks
   image: *backend-builder
   script:
     - cd backend
     - cargo fmt --all -- --check
 
 job-complexity-backend:
-  stage: prepare
+  stage: checks
   image: *backend-builder
   script:
     - >-
@@ -222,27 +225,27 @@ job-push-backend:
 
 job-test-unit:
   <<: *job-test-template
-  stage: test
+  stage: test-unit
   needs:
     - job-build-backend
   variables:
     TEST_TYPE: unit
 
-job-test-integration:
-  <<: *job-test-template
-  stage: test
-  needs:
-    - job-test-unit
-  variables:
-    TEST_TYPE: integration
-
 job-deploy-backend-stress:
   <<: *job-deploy-backend
-  stage: deploy-testing
+  stage: deploy-stress
   needs:
     - job-push-backend
   variables:
     STAGE: stress
+
+job-test-integration:
+  <<: *job-test-template
+  stage: test-integration
+  needs:
+    - job-test-unit
+  variables:
+    TEST_TYPE: integration
 
 job-deploy-backend-testing:
   <<: *job-deploy-backend
