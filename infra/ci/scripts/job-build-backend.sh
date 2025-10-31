@@ -3,7 +3,7 @@
 sccache --start-server
 cd ./backend || exit 0
     
-cargo +nightly build --release --all-targets
+cargo +nightly build --release --bins
 
 mkdir -p ./bin
 

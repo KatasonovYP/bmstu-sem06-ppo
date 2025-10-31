@@ -136,6 +136,10 @@ job-build-backend:
       policy: pull-push
       paths:
         - ${SCCACHE_DIR}
+    - key: target-local
+      policy: pull-push
+      paths:
+        - ./backend/target
     - key: backend-bin
       policy: push
       paths:
