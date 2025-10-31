@@ -10,15 +10,15 @@ find "./target/${CARGO_BUILD_TARGET}/release" \
     -maxdepth 1 -type f -print0 -executable \
     | xargs -0 -I '{}' mv {} ./bin
 
+# выгружаем таминги загрузки
+mv "./target/${CARGO_BUILD_TARGET}/cargo-timings" ./backend
+
 # пакуем исполняемые файлы тестов в архивы, чтобы передать их в следующие задачи
 mkdir -p ./tests
 
 cargo nextest archive --release --archive-file ./tests/unit.tar.zst --lib
 cargo nextest archive --release --archive-file ./tests/integration.tar.zst -p test_integration
 cargo nextest archive --release --archive-file ./tests/e2e.tar.zst -p test_e2e
-
-# выгружаем таминги загрузки
-mv "./target/${CARGO_BUILD_TARGET}/cargo-timings/cargo-timing.html" ./backend/cargo-timings.html
 
 # тут костыль с заполнением тестов тегом skipped
 mkdir -p ./allure-results
