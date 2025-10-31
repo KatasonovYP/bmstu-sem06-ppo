@@ -1,6 +1,6 @@
 FROM clux/muslrust:1.93.0-nightly
 
-RUN \
+RUN echo "installing..." \
     # install utils
     && apt update \
     && apt install -y sccache yq jq xmlstarlet \

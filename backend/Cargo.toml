@@ -9,7 +9,7 @@ members = [
     "libs/test_e2e",
     "apps/admin",
     "apps/api",
-    "apps/cli",
+    # "apps/cli",
     "apps/migration",
     "apps/refresher",
     "apps/notifier",
