@@ -1,4 +1,4 @@
-FROM cr.yandex/crpav8o4hj057l1dbgqa/the-qsb/stocks-tracker/muslrust:1.88.0-nightly
+FROM clux/muslrust:1.93.0-nightly
 
 RUN \
     # install utils
