@@ -175,14 +175,6 @@ job-push-backend:
       policy: pull
       paths:
         - backend/bin
-  parallel:
-    matrix:
-      - APP:
-        - api
-        - admin
-        - notifier
-        - refresher
-        - migration
   variables:
     DOCKERFILE: backend/Dockerfile
     CONTEXT: backend
