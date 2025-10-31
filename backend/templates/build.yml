@@ -1,0 +1,15 @@
+spec:
+  inputs:
+    stage:
+      default: build
+      description: 'Defines the build stage'
+    rust_version:
+      default: latest
+      description: 'Specify the Rust version, use values from https://hub.docker.com/_/rust/tags Defaults to latest'
+---
+
+"build-$[[ inputs.rust_version ]]":
+  stage: $[[ inputs.stage ]]
+  image: rust:$[[ inputs.rust_version ]]
+  script:
+    - cargo build --verbose

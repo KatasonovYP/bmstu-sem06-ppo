@@ -1,3 +1,8 @@
+include:
+  - component: $CI_SERVER_FQDN/$CI_PROJECT_PATH/build@$CI_COMMIT_SHA
+    inputs:
+      stage: build
+
 workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
