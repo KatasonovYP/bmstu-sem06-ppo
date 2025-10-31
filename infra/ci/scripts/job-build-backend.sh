@@ -11,7 +11,7 @@ find "./target/${CARGO_BUILD_TARGET}/release" \
     | xargs -0 -I '{}' mv {} ./bin
 
 # выгружаем таминги загрузки
-mv "./target/${CARGO_BUILD_TARGET}/cargo-timings" ./backend
+mv "./target/cargo-timings" ./backend
 
 # пакуем исполняемые файлы тестов в архивы, чтобы передать их в следующие задачи
 mkdir -p ./tests

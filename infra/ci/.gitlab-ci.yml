@@ -1,5 +1,5 @@
 include:
-  - component: $CI_SERVER_FQDN/$CI_PROJECT_PATH/build@$CI_COMMIT_SHA
+  - component: $CI_SERVER_FQDN/$CI_PROJECT_PATH/backend/build@$CI_COMMIT_SHA
     inputs:
       stage: build
 
@@ -166,7 +166,7 @@ job-build-backend:
   artifacts:
     when: always
     paths:
-      - ./backend/cargo-timings.html
+      - ./backend/cargo-timings
   script:
     - bash -x ./infra/ci/scripts/job-build-backend.sh
 
