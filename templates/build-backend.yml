@@ -57,13 +57,13 @@ job-build-backend:
       - ./backend/cargo-timings
 
   run:
-    - name: sccache-start
+    - name: sccache_start
       script: sccache --start-server
-    - name: build-apps
+    - name: build_apps
       script: bash -x ./infra/ci/scripts/job-build-backend-apps.sh
-    - name: build-tests
+    - name: build_tests
       script: bash -x ./infra/ci/scripts/job-build-backend-tests.sh
-    - name: sccache-statistics
+    - name: sccache_statistics
       script: sccache --show-stats || true
 
 # job-push-backend:
