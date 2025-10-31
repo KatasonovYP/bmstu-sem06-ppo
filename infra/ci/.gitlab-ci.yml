@@ -154,7 +154,7 @@ job-build-backend:
   artifacts:
     when: always
     paths:
-      - ./backend/target/cargo-timings
+      - ./backend/cargo-timings.html
   script:
     - bash -x ./infra/ci/scripts/job-build-backend.sh
 
