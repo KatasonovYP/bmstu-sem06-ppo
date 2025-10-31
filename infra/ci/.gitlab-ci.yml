@@ -24,6 +24,25 @@ stages:
   - deploy-production
   - allure-report
 
+.job-build-backend: &job-build-backend
+  image: ${REGISTRY}/backend-builder:latest
+  variables:
+    RUSTC_WRAPPER: sccache
+    SCCACHE_DIR: ${CI_PROJECT_DIR}/sccache
+    SCCACHE_CACHE_SIZE: 5G
+  dependencies: []
+  cache:
+    - key: sccache-local
+      policy: pull-push
+      paths:
+        - ${SCCACHE_DIR}
+  before_script:
+    sccache --zero-stats || true
+    sccache --start-server
+    cd ./backend || exit 0
+  after_script:
+    - sccache --show-stats || true
+
 .job-kaniko-push: &job-kaniko-push
   image:
     name: gcr.io/kaniko-project/executor:debug
@@ -100,13 +119,6 @@ job-build-push-ci-images:
     changes:
       - ./infra/ci/*.Dockerfile
 
-# job-lint-backend:
-#   stage: checks
-#   image: *backend-builder
-#   script:
-#     - cd backend
-#     - cargo clippy --all-targets --all-features -- -D warnings
-
 job-format-backend:
   stage: checks
   image: ${REGISTRY}/backend-builder:latest
@@ -121,16 +133,11 @@ job-complexity-backend:
     - ./infra/ci/scripts/job-complexity-backend.sh
 
 job-build-backend:
+  <<: *job-build-backend
   stage: build
-  image: ${REGISTRY}/backend-builder:latest
   needs:
     - job: job-build-push-ci-images
       optional: true
-  dependencies: []
-  variables:
-    RUSTC_WRAPPER: sccache
-    SCCACHE_DIR: ${CI_PROJECT_DIR}/sccache
-    SCCACHE_CACHE_SIZE: 5G
   cache:
     - key: sccache-local
       policy: pull-push
@@ -145,14 +152,8 @@ job-build-backend:
       paths:
         - backend/tests
         - backend/allure-results
-  before_script:
-    sccache --zero-stats || true
-    sccache --start-server
-    cd ./backend || exit 0
   script:
     - bash -x ./infra/ci/scripts/job-build-backend.sh
-  after_script:
-    - sccache --show-stats || true
 
 job-push-backend:
   <<: *job-kaniko-push
@@ -175,6 +176,15 @@ job-push-backend:
   variables:
     DOCKERFILE: backend/Dockerfile
     CONTEXT: backend
+
+
+job-lint-backend:
+  <<: *job-build-backend
+  stage: test-unit
+  needs:
+    - job-build-backend
+  script:
+    - cargo clippy --all-targets --all-features -- -D warnings
 
 job-test-unit:
   <<: *job-test-backend
