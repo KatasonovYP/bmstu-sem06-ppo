@@ -14,6 +14,11 @@ repositories:
   atomic: true
   context: the-qsb/stocks-tracker:main
 
+.stocks-tracker-values: &stocks-tracker-values
+  - ./infra/helm/values/stocks-tracker-{{ requiredEnv "STAGE" }}-values.yaml
+  - src: ./infra/helm/values/stocks-tracker-{{ requiredEnv "STAGE" }}-secrets.yaml
+    renderer: sops
+
 .charts:
   - env
   - migration
@@ -30,9 +35,8 @@ releases:
     <<: *options
     chart: ./infra/helm/charts/{{ $chart }}
     values:
-      - ./infra/helm/values/stocks-tracker-{{ requiredEnv "STAGE" }}-values.yaml
-      - src: ./infra/helm/values/stocks-tracker-{{ requiredEnv "STAGE" }}-secrets.yaml
-        renderer: sops
+      - *stocks-tracker-values
+      - ./infra/helm/values/{{ $chart }}-{{ requiredEnv "STAGE" }}-values.yaml
 
 {{ end }}
 {{- end }}

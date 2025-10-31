@@ -128,7 +128,7 @@ job-build-backend:
   dependencies: []
   variables:
     RUSTC_WRAPPER: sccache
-    SCCACHE_DIR: sccache
+    SCCACHE_DIR: ${CI_PROJECT_DIR}/sccache
     SCCACHE_CACHE_SIZE: 5G
     # SCCACHE_BUCKET: stocks-tracker.ru
     # SCCACHE_REGION: ru-central1
@@ -138,7 +138,7 @@ job-build-backend:
     - key: sccache-local
       policy: pull-push
       paths:
-        - sccache
+        - ${CI_PROJECT_DIR}/sccache
     - key: backend-bin
       policy: push
       paths:
@@ -149,7 +149,7 @@ job-build-backend:
         - backend/tests
         - backend/allure-results
   script:
-    - ./infra/ci/scripts/job-build-backend.sh
+    - bash -x ./infra/ci/scripts/job-build-backend.sh
   after_script:
     - sccache --show-stats
 
