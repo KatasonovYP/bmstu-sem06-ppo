@@ -20,14 +20,14 @@ mkdir -p ./allure-results
 
 TEST_FILE=./target/nextest/default/junit.xml
 
-cargo nextest run --nff --no-capture --archive-file ./tests/unit.tar.zst || true
+cargo nextest run --nff --no-capture --archive-file ./tests/unit.tar.zst > /dev/null 2>&1 || true
 xmlstarlet ed -L -P  -s '//testcase' -t elem -n skipped -v '' -d '//failure' ${TEST_FILE}
 mv ${TEST_FILE} ./allure-results/unit.xml
 
-cargo nextest run --nff --no-capture --archive-file ./tests/integration.tar.zst || true
+cargo nextest run --nff --no-capture --archive-file ./tests/integration.tar.zst > /dev/null 2>&1 || true
 xmlstarlet ed -L -P  -s '//testcase' -t elem -n skipped -v '' -d '//failure' ${TEST_FILE}
 mv ${TEST_FILE} ./allure-results/integration.xml
 
-cargo nextest run --nff --no-capture --archive-file ./tests/e2e.tar.zst || true
+cargo nextest run --nff --no-capture --archive-file ./tests/e2e.tar.zst > /dev/null 2>&1 || true
 xmlstarlet ed -L -P  -s '//testcase' -t elem -n skipped -v '' -d '//failure' ${TEST_FILE}
 mv ${TEST_FILE} ./allure-results/e2e.xml

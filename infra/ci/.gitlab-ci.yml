@@ -146,7 +146,7 @@ job-build-backend:
         - backend/tests
         - backend/allure-results
   before_script:
-    ccache --zero-stats || true
+    sccache --zero-stats || true
     sccache --start-server
     cd ./backend || exit 0
   script:
