@@ -70,16 +70,16 @@ job-build-backend:
     - name: build tests
       script: bash -x ./infra/ci/scripts/job-build-backend-tests.sh
 
-job-push-backend:
-  <<: *job-kaniko-push
-  stage: build
-  needs:
-    - job-build-backend
-  cache:
-    - key: backend-bin
-      policy: pull
-      paths:
-        - backend/bin
-  variables:
-    DOCKERFILE: backend/Dockerfile
-    CONTEXT: backend
+# job-push-backend:
+#   <<: *job-kaniko-push
+#   stage: build
+#   needs:
+#     - job-build-backend
+#   cache:
+#     - key: backend-bin
+#       policy: pull
+#       paths:
+#         - backend/bin
+#   variables:
+#     DOCKERFILE: backend/Dockerfile
+#     CONTEXT: backend
