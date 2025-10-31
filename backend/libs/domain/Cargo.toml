@@ -3,6 +3,9 @@ name = "domain"
 version.workspace = true
 edition.workspace = true
 
+[lib]
+crate-type = ["rlib", "dylib"]
+
 [dependencies]
 # Async and runtime
 tokio = { workspace = true, features = ["full"] }

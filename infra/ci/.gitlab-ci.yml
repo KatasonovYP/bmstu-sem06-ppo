@@ -114,9 +114,9 @@ job-build-push-ci-images:
         - patroni
   variables:
     DOCKERFILE: infra/ci/${APP}.Dockerfile
-  # only:
-  #   changes:
-  #     - ./infra/ci/*.Dockerfile
+  only:
+    changes:
+      - ./infra/ci/*.Dockerfile
 
 job-format-backend:
   stage: checks
