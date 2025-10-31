@@ -2,7 +2,7 @@
 
 cd ./backend || exit 0
 
-cargo +nightly build --release --all-targets --timings
+RUSTFLAGS="-Z threads=16" cargo +nightly build --release --all-targets --timings
 
 mkdir -p ./bin
 
