@@ -4,6 +4,12 @@ workflow:
     - if: $CI_PIPELINE_SOURCE == "web"
     - when: never
 
+variables:
+  # AWS vars
+  AWS_DEFAULT_REGION: ru-central1
+  AWS_ENDPOINT_URL: https://storage.yandexcloud.net
+  S3_BUCKET: allure.stocks-tracker.ru
+
 stages:
   - prepare
   - checks
@@ -79,11 +85,6 @@ stages:
       --yml
       --tpl infra/helm/helmwave.app.yml.tpl
 
-.aws-env: &aws-env
-  AWS_DEFAULT_REGION: ru-central1
-  AWS_ENDPOINT_URL: https://storage.yandexcloud.net
-  S3_BUCKET: allure.stocks-tracker.ru
-
 job-build-push-ci-images:
   <<: *job-kaniko-push
   stage: prepare
@@ -130,15 +131,11 @@ job-build-backend:
     RUSTC_WRAPPER: sccache
     SCCACHE_DIR: ${CI_PROJECT_DIR}/sccache
     SCCACHE_CACHE_SIZE: 5G
-    # SCCACHE_BUCKET: stocks-tracker.ru
-    # SCCACHE_REGION: ru-central1
-    # SCCACHE_ENDPOINT: storage.yandexcloud.net
-    # SCCACHE_S3_KEY_PREFIX: cache/sccache
   cache:
     - key: sccache-local
       policy: pull-push
       paths:
-        - ${CI_PROJECT_DIR}/sccache
+        - ${SCCACHE_DIR}
     - key: backend-bin
       policy: push
       paths:
@@ -226,7 +223,6 @@ job-deploy-backend-production:
 job-allure-report:
   stage: allure-report
   when: always
-  variables: *aws-env
   needs:
     - job-test-unit
     - job-test-integration
@@ -273,7 +269,6 @@ job-deploy-frontend:
   needs:
     - job-build-frontend
     - job-test-integration
-  variables: *aws-env
   dependencies: []
   cache: []
   image:

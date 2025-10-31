@@ -4,6 +4,5 @@ metadata:
   name: {{ .Values.meta.name }}-file-config
   namespace: {{ .Values.meta.namespace }}
 data:
-  {{- range $key, $value := .Values.env }}
-    {{ $key }}: {{ $value | quote }}
-  {{- end }}
+  app.yaml: |-
+    {{ .Files.Get "backend/config/app.default.yaml" | indent 4 }}
