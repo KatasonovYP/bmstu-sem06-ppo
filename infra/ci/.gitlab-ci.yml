@@ -39,7 +39,6 @@ stages:
   before_script:
     sccache --zero-stats || true
     sccache --start-server
-    cd ./backend || exit 0
   after_script:
     - sccache --show-stats || true
 
@@ -184,6 +183,7 @@ job-lint-backend:
   needs:
     - job-build-backend
   script:
+    - cd ./backend || exit 0
     - cargo clippy --all-targets --all-features -- -D warnings
 
 job-test-unit:

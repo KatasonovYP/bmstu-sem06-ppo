@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd ./backend || exit 0
+
 cargo +nightly build --release --all-targets
 
 mkdir -p ./bin
