@@ -151,6 +151,10 @@ job-build-backend:
       paths:
         - backend/tests
         - backend/allure-results
+  artifacts:
+    when: always
+    paths:
+      - ./backend/target/cargo-timings
   script:
     - bash -x ./infra/ci/scripts/job-build-backend.sh
 
@@ -168,7 +172,7 @@ job-push-backend:
     matrix:
       - APP:
         - api
-        - admin
+        # - admin
         - notifier
         - refresher
         - migration
