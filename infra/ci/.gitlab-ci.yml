@@ -54,7 +54,7 @@ stages:
     - >-
       /kaniko/executor
       --dockerfile "${CI_PROJECT_DIR}/${DOCKERFILE}"
-      --context "${CI_PROJECT_DIR}/"${CONTEXT}"
+      --context "${CI_PROJECT_DIR}/${CONTEXT}"
       --build-arg "APP=${APP}"
       --destination "${CI_REGISTRY}/${CI_PROJECT_PATH}/${APP}:${CI_COMMIT_SHORT_SHA}"
       --destination "${CI_REGISTRY}/${CI_PROJECT_PATH}/${APP}:latest"

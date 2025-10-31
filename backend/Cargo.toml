@@ -7,7 +7,7 @@ members = [
     "libs/test_utils",
     "libs/test_integration",
     "libs/test_e2e",
-    "apps/admin",
+    # "apps/admin",
     "apps/api",
     "apps/cli",
     "apps/migration",
