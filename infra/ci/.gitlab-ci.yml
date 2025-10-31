@@ -128,8 +128,8 @@ job-build-backend:
   dependencies: []
   variables:
     RUSTC_WRAPPER: sccache
-    # SCCACHE_DIR: .sccache-cache
-    # SCCACHE_CACHE_SIZE: "10G"
+    SCCACHE_DIR: sccache
+    SCCACHE_CACHE_SIZE: 5G
     # SCCACHE_BUCKET: stocks-tracker.ru
     # SCCACHE_REGION: ru-central1
     # SCCACHE_ENDPOINT: storage.yandexcloud.net
@@ -138,7 +138,7 @@ job-build-backend:
     - key: sccache-local
       policy: pull-push
       paths:
-        - /root/.cache/sccache
+        - sccache
     - key: backend-bin
       policy: push
       paths:

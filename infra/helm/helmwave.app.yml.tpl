@@ -1,6 +1,11 @@
 project: stocks-tracker-{{ requiredEnv "STAGE" }}
 version: 0.42.2
 
+
+repositories:
+  - name: bitnami
+    url: https://charts.bitnami.com/bitnami
+
 .options: &options
   create_namespace: true
   wait: true
@@ -9,46 +14,32 @@ version: 0.42.2
   atomic: true
   context: the-qsb/stocks-tracker:main
 
+.stocks-tracker-values: &stocks-tracker-values
+  - ./infra/helm/values/stocks-tracker-{{ requiredEnv "STAGE" }}-values.yaml
+  - src: ./infra/helm/values/stocks-tracker-{{ requiredEnv "STAGE" }}-secrets.yaml
+    renderer: sops
+  - ./infra/helm/values/patroni-{{ requiredEnv "STAGE" }}-values.yaml
+
+.charts:
+  - redis
+  - patroni
+  - migration
+  - env
+  - app
+  - routing
+
 releases:
 
-  - name: patroni-{{ requiredEnv "STAGE" }}
-    namespace: patroni
-    <<: *options
-    chart: ./infra/helm/charts/patroni
-    values:
-      - ./infra/helm/values/stocks-tracker-{{ requiredEnv "STAGE" }}-values.yaml
-      - src: ./infra/helm/values/stocks-tracker-{{ requiredEnv "STAGE" }}-secrets.yaml
-        renderer: sops
-      - ./infra/helm/values/patroni-{{ requiredEnv "STAGE" }}-values.yaml
+{{- get ".charts" }}
+{{ range $chart := . }}
 
-  - name: stocks-tracker-{{ requiredEnv "STAGE" }}-env
+  - name: stocks-tracker-{{ requiredEnv "STAGE" }}-{{ $chart }}
     namespace: stocks-tracker
     <<: *options
-    chart: ./infra/helm/charts/stocks-tracker-env
+    chart: ./infra/helm/charts/{{ $chart }}
     values:
-      - ./infra/helm/values/stocks-tracker-{{ requiredEnv "STAGE" }}-values.yaml
-      - src: ./infra/helm/values/stocks-tracker-{{ requiredEnv "STAGE" }}-secrets.yaml
-        renderer: sops
+      - *stocks-tracker-values
+      - ./infra/helm/values/{{ $chart }}-{{ requiredEnv "STAGE" }}-values.yaml
 
-  - name: stocks-tracker-{{ requiredEnv "STAGE" }}-migration
-    namespace: stocks-tracker
-    <<: *options
-    chart: ./infra/helm/charts/stocks-tracker-migration
-    depends_on:
-      - stocks-tracker-{{ requiredEnv "STAGE" }}-env@stocks-tracker
-      - patroni-{{ requiredEnv "STAGE" }}@patroni
-    values:
-      - ./infra/helm/values/stocks-tracker-{{ requiredEnv "STAGE" }}-values.yaml
-      - src: ./infra/helm/values/stocks-tracker-{{ requiredEnv "STAGE" }}-secrets.yaml
-        renderer: sops
-
-  - name: stocks-tracker-{{ requiredEnv "STAGE" }}-app
-    namespace: stocks-tracker
-    <<: *options
-    chart: ./infra/helm/charts/stocks-tracker-app
-    depends_on:
-      - stocks-tracker-{{ requiredEnv "STAGE" }}-migration@stocks-tracker
-    values:
-      - ./infra/helm/values/stocks-tracker-{{ requiredEnv "STAGE" }}-values.yaml
-      - src: ./infra/helm/values/stocks-tracker-{{ requiredEnv "STAGE" }}-secrets.yaml
-        renderer: sops
+{{ end }}
+{{- end }}
