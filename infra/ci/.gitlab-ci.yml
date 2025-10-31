@@ -9,6 +9,8 @@ variables:
   AWS_DEFAULT_REGION: ru-central1
   AWS_ENDPOINT_URL: https://storage.yandexcloud.net
   S3_BUCKET: allure.stocks-tracker.ru
+  # others
+  REGISTRY: cr.yandex/crpav8o4hj057l1dbgqa/the-qsb/stocks-tracker
 
 stages:
   - prepare
@@ -21,9 +23,6 @@ stages:
   - deploy-testing
   - deploy-production
   - allure-report
-
-.images:
-  backend-builder: &backend-builder cr.yandex/crpav8o4hj057l1dbgqa/the-qsb/stocks-tracker/backend-builder:latest
 
 .job-kaniko-push: &job-kaniko-push
   image:
@@ -43,7 +42,7 @@ stages:
 
 .job-test-backend: &job-test-backend
   when: on_success
-  image: *backend-builder
+  image: ${REGISTRY}/backend-builder:latest
   dependencies: []
   variables:
     TEST_TYPE: TEST_TYPE_PLACEHOLDER
@@ -109,20 +108,20 @@ job-build-push-ci-images:
 
 job-format-backend:
   stage: checks
-  image: *backend-builder
+  image: ${REGISTRY}/backend-builder:latest
   script:
     - cd backend
     - cargo fmt --all -- --check
 
 job-complexity-backend:
   stage: checks
-  image: *backend-builder
+  image: ${REGISTRY}/backend-builder:latest
   script:
     - ./infra/ci/scripts/job-complexity-backend.sh
 
 job-build-backend:
   stage: build
-  image: *backend-builder
+  image: ${REGISTRY}/backend-builder:latest
   needs:
     - job: job-build-push-ci-images
       optional: true
@@ -236,7 +235,7 @@ job-allure-report:
       policy: pull
       paths:
         - backend/allure-results
-  image: cr.yandex/crpav8o4hj057l1dbgqa/the-qsb/stocks-tracker/reporter:latest
+  image: ${REGISTRY}/reporter:latest
   script:
     - ./infra/ci/scripts/job-allure-report.sh
   artifacts:
@@ -279,8 +278,7 @@ job-deploy-frontend:
     name: amazon/aws-cli:2.27.4
     entrypoint: ["/usr/bin/env"]
   script:
-    - >-
-      aws s3 sync ./frontend/dist/apps/app ${S3_BUCKET}
+    - aws s3 sync ./frontend/dist/apps/app ${S3_BUCKET}
   only:
     changes:
       - frontend
