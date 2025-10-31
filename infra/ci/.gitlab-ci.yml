@@ -36,6 +36,7 @@ stages:
     - >-
       /kaniko/executor
       --dockerfile "${CI_PROJECT_DIR}/${DOCKERFILE}"
+      --context "${CI_PROJECT_DIR}/"${CONTEXT}"
       --build-arg "APP=${APP}"
       --destination "${CI_REGISTRY}/${CI_PROJECT_PATH}/${APP}:${CI_COMMIT_SHORT_SHA}"
       --destination "${CI_REGISTRY}/${CI_PROJECT_PATH}/${APP}:latest"
@@ -135,10 +136,6 @@ job-build-backend:
       policy: pull-push
       paths:
         - ${SCCACHE_DIR}
-    - key: target-local
-      policy: pull-push
-      paths:
-        - ./backend/target
     - key: backend-bin
       policy: push
       paths:
@@ -148,10 +145,14 @@ job-build-backend:
       paths:
         - backend/tests
         - backend/allure-results
+  before_script:
+    ccache --zero-stats || true
+    sccache --start-server
+    cd ./backend || exit 0
   script:
     - bash -x ./infra/ci/scripts/job-build-backend.sh
   after_script:
-    - sccache --show-stats
+    - sccache --show-stats || true
 
 job-push-backend:
   <<: *job-kaniko-push
@@ -173,6 +174,7 @@ job-push-backend:
         - migration
   variables:
     DOCKERFILE: backend/Dockerfile
+    CONTEXT: backend
 
 job-test-unit:
   <<: *job-test-backend
