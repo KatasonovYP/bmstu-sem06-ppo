@@ -3,9 +3,6 @@ name = "adapters"
 version.workspace = true
 edition.workspace = true
 
-[lib]
-crate-type = ["rlib", "dylib"]
-
 [dependencies]
 # stocks_tracker libs
 domain = { path = "../domain" }
