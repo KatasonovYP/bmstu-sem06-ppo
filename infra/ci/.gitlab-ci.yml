@@ -9,6 +9,9 @@ variables:
   AWS_DEFAULT_REGION: ru-central1
   AWS_ENDPOINT_URL: https://storage.yandexcloud.net
   S3_BUCKET: allure.stocks-tracker.ru
+  # rust
+  RUSTFLAGS: "-Z threads=16"
+  CARGO_INCREMENTAL: 0
   # others
   REGISTRY: cr.yandex/crpav8o4hj057l1dbgqa/the-qsb/stocks-tracker
 
@@ -28,8 +31,12 @@ stages:
   image: ${REGISTRY}/backend-builder:latest
   variables:
     RUSTC_WRAPPER: sccache
-    SCCACHE_DIR: ${CI_PROJECT_DIR}/sccache
-    SCCACHE_CACHE_SIZE: 5G
+    SCCACHE_BUCKET: stocks-tracker-cache
+    SCCACHE_REGION: ru-central1
+    SCCACHE_ENDPOINT: storage.yandexcloud.net
+    SCCACHE_S3_KEY_PREFIX: cache/sccache
+    # SCCACHE_DIR: ${CI_PROJECT_DIR}/sccache
+    # SCCACHE_CACHE_SIZE: 5G
   dependencies: []
   cache:
     - key: sccache-local
