@@ -18,7 +18,7 @@ cargo nextest archive --release --archive-file ./tests/integration.tar.zst -p te
 cargo nextest archive --release --archive-file ./tests/e2e.tar.zst -p test_e2e
 
 # выгружаем таминги загрузки
-mv "./target/${CARGO_BUILD_TARGET}cargo-timings/cargo-timing.html" ./backend/cargo-timings.html
+mv "./target/${CARGO_BUILD_TARGET}/cargo-timings/cargo-timing.html" ./backend/cargo-timings.html
 
 # тут костыль с заполнением тестов тегом skipped
 mkdir -p ./allure-results

@@ -162,6 +162,9 @@ job-build-backend:
     when: always
     paths:
       - ./backend/cargo-timings.html
+  run:
+    - name: hello
+      step: gitlab.com/gitlab-org/ci-cd/runner-tools/echo-step@v1.0.0
   script:
     - bash -x ./infra/ci/scripts/job-build-backend.sh
 
