@@ -25,4 +25,6 @@ RUN echo "installing..." \
     && cd - \
     && rust-code-analysis-cli --version
 
+COPY --from=registry.gitlab.com/gitlab-org/step-runner:latest step-runner /usr/bin/
+
 CMD ["/bin/bash"]
