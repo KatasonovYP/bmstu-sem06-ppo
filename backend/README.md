@@ -12,6 +12,7 @@ docker compose up postgres redis -d
 
 ```bash
 source ./.env
+export POSTGRES_CONNECTION_STRING="postgres://${APP_POSTGRES_USER}:${APP_POSTGRES_PASSWORD}@${APP_POSTGRES_HOST}:${APP_POSTGRES_PORT}/${APP_POSTGRES_DATABASE}"
 sea-orm-cli migrate refresh -u "$APP_POSTGRES_CONNECTION_STRING" -d apps/migration
 sea-orm-cli generate entity -u "$APP_POSTGRES_CONNECTION_STRING" -o libs/adapters/src/postgres/schema --with-serde both --serde-skip-deserializing-primary-key --model-extra-derives 'Default' --seaography
 ```

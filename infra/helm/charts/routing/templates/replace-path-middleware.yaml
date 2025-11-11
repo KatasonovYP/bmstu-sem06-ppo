@@ -1,9 +1,9 @@
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
-  name: {{ .Values.meta.name }}-replace-mirror-path
+  name: {{ .Values.meta.name }}-replace-path
   namespace: {{ .Values.meta.namespace }}
 spec:
   replacePathRegex:
-    regex: "^{{ .Values.ingress.api.mirror_path }}(.*)"
-    replacement: "{{ .Values.ingress.api.path }}$1"
+    regex: "^{{ .Values.ingress.api.path }}/(.*)"
+    replacement: "/$1"

@@ -8,3 +8,4 @@ key.txt
 **/allure-report
 helmwave.yml
 **/openapitools.json
+rust-code-analysis-cli

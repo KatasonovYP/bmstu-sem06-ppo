@@ -3,3 +3,8 @@ rbac:
 
 server:
   useExistingClusterRoleName: prometheus-stack-kube-prom-admission
+
+prometheus:
+  prometheusSpec:
+    ScrapeInterval: 5s
+    evaluationInterval: 5s

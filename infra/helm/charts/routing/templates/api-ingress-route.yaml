@@ -36,10 +36,11 @@ spec:
 
   routes:
 
-    - match: Host(`{{ .Values.ingress.api.host }}`)
+    - match: Host(`{{ .Values.ingress.api.host }}`) && PathPrefix(`{{ .Values.ingress.api.path }}`)
       kind: Rule
       middlewares:
         - name: {{ .Values.meta.name }}-server-header-api
+        - name: {{ .Values.meta.name }}-replace-path
       services:
         - name: {{ .Values.meta.name }}-api-service
           port: 80

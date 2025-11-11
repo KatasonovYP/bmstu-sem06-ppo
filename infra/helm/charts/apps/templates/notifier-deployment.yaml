@@ -4,7 +4,7 @@ metadata:
   name: {{ .Values.meta.name }}-notifier-deployment
   namespace: {{ .Values.meta.namespace }}
 spec:
-  replicas: {{ .Values.scaling.minReplicas }}
+  replicas: {{ .Values.app.replicas }}
   selector:
     matchLabels:
       app: {{ .Values.meta.name }}-notifier

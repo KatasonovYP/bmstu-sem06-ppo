@@ -18,7 +18,7 @@ repositories:
 .options: &options
   create_namespace: true
   wait: true
-  timeout: 1m
+  timeout: 2m
   max_history: 3
   atomic: true
   context: the-qsb/stocks-tracker:main
@@ -48,13 +48,13 @@ releases:
         renderer: sops
 
   - name: prometheus-stack
-    namespace: prometeus
+    namespace: prometheus
     <<: *options
     chart:
       name: prometheus-community/kube-prometheus-stack
     values:
-      - infra/helm/values/prometeus-values.yaml
-      - src: infra/helm/values/prometeus-secrets.yaml
+      - infra/helm/values/prometheus-values.yaml
+      - src: infra/helm/values/prometheus-secrets.yaml
         renderer: sops
 
   - name: loki-stack
@@ -65,11 +65,11 @@ releases:
     values:
       - infra/helm/values/loki-stack-values.yaml
 
-  - name: influxdb
-    namespace: influxdb
-    <<: *options
-    chart:
-      name: influxdata/influxdb
+  # - name: influxdb
+  #   namespace: influxdb
+  #   <<: *options
+  #   chart:
+  #     name: influxdata/influxdb
     # values:
     #   - infra/helm/values/influxdb-values.yaml
 
@@ -102,4 +102,4 @@ releases:
   - name: stocks-tracker-side-infra
     namespace: stocks-tracker
     <<: *options
-    chart: ./infra/helm/charts/stocks-tracker-side-infra
+    chart: ./infra/helm/charts/side-infra

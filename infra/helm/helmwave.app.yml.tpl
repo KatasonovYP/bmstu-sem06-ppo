@@ -1,4 +1,4 @@
-project: stocks-tracker-{{ requiredEnv "STAGE" }}
+project: stocks-tracker-{{ requiredEnv "STAGE" }}{{ requiredEnv "TEST_ID" }}
 version: 0.42.2
 
 
@@ -14,18 +14,11 @@ repositories:
   atomic: true
   context: the-qsb/stocks-tracker:main
 
-.charts:
-  - env
-  - migration
-  - app
-  - routing
 
 releases:
-
-{{- get ".charts" }}
-{{ range $chart := . }}
-
-  - name: stocks-tracker-{{ requiredEnv "STAGE" }}-{{ $chart }}
+{{- with readFile "./infra/helm/vars.yaml" | fromYaml | get "charts" }}
+{{- range $chart := . }}
+  - name: stocks-tracker-{{ requiredEnv "STAGE" }}{{ requiredEnv "TEST_ID" }}-{{ $chart }}
     namespace: stocks-tracker
     <<: *options
     chart: ./infra/helm/charts/{{ $chart }}
@@ -33,6 +26,5 @@ releases:
       - ./infra/helm/values/stocks-tracker-{{ requiredEnv "STAGE" }}-values.yaml
       - src: ./infra/helm/values/stocks-tracker-{{ requiredEnv "STAGE" }}-secrets.yaml
         renderer: sops
-
-{{ end }}
+{{- end }}
 {{- end }}

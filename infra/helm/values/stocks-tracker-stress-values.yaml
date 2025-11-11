@@ -1,5 +1,5 @@
 meta:
-  name: stocks-tracker-stress
+  name: stocks-tracker-stress{{ env "TEST_ID" }}
 
 image:
   tag: '{{ env "CI_COMMIT_SHORT_SHA" }}'
@@ -7,11 +7,13 @@ image:
 ingress:
   api:
     host: api.stress.stocks-tracker.ru
+    path: /{{ env "TEST_ID" }}
   admin:
     host: admin.stress.stocks-tracker.ru
+    path: /{{ env "TEST_ID" }}
 
 env:
     APP_POSTGRES_USER: postgres
-    APP_POSTGRES_HOST: patroni-stress.patroni.svc
+    APP_POSTGRES_HOST: stocks-tracker-stress{{ env "TEST_ID" }}-patroni
     APP_POSTGRES_PORT: '5432'
     APP_POSTGRES_DATABASE: postgres

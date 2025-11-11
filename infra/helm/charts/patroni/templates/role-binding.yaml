@@ -1,0 +1,29 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Values.meta.name }}-patroni
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ .Values.meta.name }}-patroni
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Values.meta.name }}-patroni
+
+# Following privileges are only required if deployed not in the "default"
+# namespace and you want Patroni to bypass kubernetes service
+# (PATRONI_KUBERNETES_BYPASS_API_SERVICE=true)
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.meta.name }}-patroni-k8s-ep-access
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - endpoints
+    resourceNames:
+      - kubernetes
+    verbs:
+      - get

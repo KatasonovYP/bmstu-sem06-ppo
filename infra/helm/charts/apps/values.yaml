@@ -18,6 +18,9 @@ ingress:
 
 port: 3000
 
+app:
+  replicas: 1
+
 rollingUpdate:
   maxUnavailable: 5
   maxSurge: 5

@@ -1,0 +1,104 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Values.meta.name }}-patroni
+  labels:
+    application: {{ .Values.meta.name }}-patroni
+    cluster-name: {{ .Values.meta.name }}-patroni
+spec:
+  replicas: {{ .Values.patroni.replicas | default 3 }}
+  serviceName: {{ .Values.meta.name }}-patroni
+  selector:
+    matchLabels:
+      application: {{ .Values.meta.name }}-patroni
+      cluster-name: {{ .Values.meta.name }}-patroni
+  template:
+    metadata:
+      labels:
+        application: {{ .Values.meta.name }}-patroni
+        cluster-name: {{ .Values.meta.name }}-patroni
+    spec:
+      serviceAccountName: {{ .Values.meta.name }}-patroni
+      containers:
+        - name: {{ .Values.meta.name }}-patroni
+          image: "{{ .Values.patroni.image.repository }}:{{ .Values.patroni.image.tag }}"
+          imagePullPolicy: IfNotPresent
+          readinessProbe:
+            httpGet:
+              scheme: HTTP
+              path: /readiness
+              port: 8008
+            initialDelaySeconds: 3
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          ports:
+            - containerPort: 8008
+              protocol: TCP
+            - containerPort: 5432
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /home/postgres/pgdata
+              name: pgdata
+          env:
+            - name: PATRONI_KUBERNETES_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: PATRONI_KUBERNETES_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: PATRONI_KUBERNETES_BYPASS_API_SERVICE
+              value: "true"
+            - name: PATRONI_KUBERNETES_USE_ENDPOINTS
+              value: "true"
+            - name: PATRONI_KUBERNETES_LABELS
+              value: "{application: {{ .Values.meta.name }}-patroni, cluster-name: {{ .Values.meta.name }}-patroni}"
+            - name: PATRONI_SUPERUSER_USERNAME
+              value: {{ .Values.env.APP_POSTGRES_USER }}
+            - name: PATRONI_SUPERUSER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.meta.name }}-patroni
+                  key: superuser-password
+            - name: PATRONI_REPLICATION_USERNAME
+              value: standby
+            - name: PATRONI_REPLICATION_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.meta.name }}-patroni
+                  key: replication-password
+            - name: PATRONI_SCOPE
+              value: {{ .Values.meta.name }}-patroni
+            - name: PATRONI_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: PATRONI_POSTGRESQL_DATA_DIR
+              value: /home/postgres/pgdata/pgroot/data
+            - name: PATRONI_POSTGRESQL_PGPASS
+              value: /tmp/pgpass
+            - name: PATRONI_POSTGRESQL_LISTEN
+              value: "0.0.0.0:5432"
+            - name: PATRONI_RESTAPI_LISTEN
+              value: "0.0.0.0:8008"
+      terminationGracePeriodSeconds: 0
+      volumes:
+        - name: pgdata
+          emptyDir: {}
+#  volumeClaimTemplates:
+#  - metadata:
+#      labels:
+#        application: spilo
+#        spilo-cluster: *cluster_name
+#      annotations:
+#        volume.alpha.kubernetes.io/storage-class: anything
+#      name: pgdata
+#    spec:
+#      accessModes:
+#      - ReadWriteOnce
+#      resources:
+#        requests:
+#          storage: 5Gi

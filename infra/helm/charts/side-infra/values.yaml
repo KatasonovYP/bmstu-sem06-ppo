@@ -6,12 +6,3 @@ ingress:
   monitoring:
     host: monitoring.stocks-tracker.ru
     path: /
-  vault:
-    host: vault.stocks-tracker.ru
-    path: /
-  gw:
-    host: gw.stocks-tracker.ru
-    path: /
-
-gw:
-  port: 80
