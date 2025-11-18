@@ -10,5 +10,4 @@ adapters = { path = "../../libs/adapters" }
 
 # other
 tokio = { workspace = true, features = ["full"] }
-shaku = { workspace = true }
 tracing = { workspace = true, features = ["attributes"] }

@@ -16,6 +16,5 @@ sea-orm = { workspace = true, features = [
     "macros",
     "mock",
 ] }
-shaku = { workspace = true }
 secrecy = { workspace = true, features = ["serde"] }
 tracing = { workspace = true, features = ["attributes"] }

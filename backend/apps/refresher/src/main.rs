@@ -5,7 +5,6 @@ use adapters::{
     settings::Settings,
 };
 use domain::ports::domain::AbstractPriceCacheService;
-use shaku::HasComponent;
 use tokio::time::{
     self,
     Duration,

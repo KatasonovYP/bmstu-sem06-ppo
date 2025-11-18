@@ -1364,7 +1364,6 @@ dependencies = [
  "chrono",
  "clap",
  "domain",
- "shaku",
  "tokio",
 ]
 
@@ -3346,7 +3345,6 @@ version = "0.1.2"
 dependencies = [
  "adapters",
  "domain",
- "shaku",
  "tokio",
  "tracing",
 ]
@@ -4124,7 +4122,6 @@ version = "0.1.2"
 dependencies = [
  "adapters",
  "domain",
- "shaku",
  "tokio",
  "tracing",
 ]
@@ -5688,7 +5685,6 @@ dependencies = [
  "domain",
  "fake",
  "mockall",
- "shaku",
  "test_utils",
  "tokio",
 ]
@@ -5702,7 +5698,6 @@ dependencies = [
  "migration",
  "sea-orm",
  "secrecy",
- "shaku",
  "tracing",
 ]
 

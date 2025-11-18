@@ -19,7 +19,6 @@ use sea_orm::{
     Database,
 };
 use secrecy::ExposeSecret;
-use shaku::HasComponent;
 
 pub struct TestManager {
     pub user_repo: Arc<dyn UserRepository>,

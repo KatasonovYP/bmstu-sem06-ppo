@@ -21,6 +21,15 @@ port: 3000
 app:
   replicas: 1
 
+features:
+  admin: false
+  mongodb: false
+  postgres: true
+  redis: false
+  refresher: false
+  notifier: false
+  api: true
+
 rollingUpdate:
   maxUnavailable: 5
   maxSurge: 5
@@ -57,7 +66,6 @@ secret:
   APP_POSTGRES_CONNECTION_STRING: "postgresql://postgres:default-postgres-password@stocks-tracker-testing-postgres-service:5432/stocks_tracker"
 
 mongodb:
-  enabled: false
   port: 27017
   image:
     repository: mongo
@@ -73,7 +81,6 @@ mongodb:
     size: 5Gi
 
 postgres:
-  enabled: false
   port: 5432
   image:
     repository: postgres

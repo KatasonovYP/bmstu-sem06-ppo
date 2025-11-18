@@ -1,3 +1,4 @@
+{{- if .Values.features.admin }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -25,3 +26,4 @@ spec:
                 name: {{ .Values.meta.name }}-admin-service
                 port:
                   number: 80
+{{- end }}

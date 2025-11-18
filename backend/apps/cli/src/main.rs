@@ -12,7 +12,6 @@ use clap::{
     Parser,
     ValueEnum,
 };
-use shaku::HasComponent;
 
 use crate::{
     commands::*,

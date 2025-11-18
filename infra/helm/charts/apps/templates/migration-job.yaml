@@ -1,4 +1,4 @@
-{{- if .Values.postgres.enabled }}
+{{- if .Values.features.postgres }}
 apiVersion: batch/v1
 kind: Job
 metadata:

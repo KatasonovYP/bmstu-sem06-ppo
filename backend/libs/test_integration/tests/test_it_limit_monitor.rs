@@ -33,7 +33,6 @@ use fake::{
     Faker,
 };
 use mockall::predicate::eq;
-use shaku::HasComponent;
 
 #[tokio::test]
 async fn test_it_limit_monitor() {

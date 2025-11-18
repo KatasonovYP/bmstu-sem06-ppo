@@ -1,4 +1,4 @@
-{{- if .Values.mongodb.enabled }}
+{{- if .Values.features.mongodb }}
 apiVersion: v1
 kind: Service
 metadata:

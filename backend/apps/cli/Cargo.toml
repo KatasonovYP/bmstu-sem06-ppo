@@ -12,4 +12,3 @@ adapters = { path = "../../libs/adapters" }
 tokio = { workspace = true, features = ["full"] }
 chrono = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
-shaku = { workspace = true }
