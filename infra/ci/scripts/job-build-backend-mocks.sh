@@ -16,23 +16,23 @@ mv "./target/cargo-timings" ./backend
 # пакуем исполняемые файлы тестов в архивы, чтобы передать их в следующие задачи
 mkdir -p ./tests
 
-cargo nextest archive --release --archive-file ./tests/unit.tar.zst --lib
-cargo nextest archive --release --archive-file ./tests/integration.tar.zst -p test_integration
-cargo nextest archive --release --archive-file ./tests/e2e.tar.zst -p test_e2e
+cargo +nightly nextest archive --release --archive-file ./tests/unit.tar.zst --lib
+cargo +nightly nextest archive --release --archive-file ./tests/integration.tar.zst -p test_integration
+cargo +nightly nextest archive --release --archive-file ./tests/e2e.tar.zst -p test_e2e
 
 # тут костыль с заполнением тестов тегом skipped
 mkdir -p ./allure-results
 
 TEST_FILE=./target/nextest/default/junit.xml
 
-cargo nextest run --nff --no-capture --archive-file ./tests/unit.tar.zst > /dev/null 2>&1 || true
+cargo +nightly nextest run --nff --no-capture --archive-file ./tests/unit.tar.zst > /dev/null 2>&1 || true
 xmlstarlet ed -L -P  -s '//testcase' -t elem -n skipped -v '' -d '//failure' ${TEST_FILE}
 mv ${TEST_FILE} ./allure-results/unit.xml
 
-cargo nextest run --nff --no-capture --archive-file ./tests/integration.tar.zst > /dev/null 2>&1 || true
+cargo +nightly nextest run --nff --no-capture --archive-file ./tests/integration.tar.zst > /dev/null 2>&1 || true
 xmlstarlet ed -L -P  -s '//testcase' -t elem -n skipped -v '' -d '//failure' ${TEST_FILE}
 mv ${TEST_FILE} ./allure-results/integration.xml
 
-cargo nextest run --nff --no-capture --archive-file ./tests/e2e.tar.zst > /dev/null 2>&1 || true
+cargo +nightly nextest run --nff --no-capture --archive-file ./tests/e2e.tar.zst > /dev/null 2>&1 || true
 xmlstarlet ed -L -P  -s '//testcase' -t elem -n skipped -v '' -d '//failure' ${TEST_FILE}
 mv ${TEST_FILE} ./allure-results/e2e.xml
