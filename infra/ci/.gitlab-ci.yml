@@ -183,6 +183,7 @@ job-push-backend:
   variables:
     DOCKERFILE: backend/Dockerfile
     CONTEXT: backend
+    APP: apps
 
 # job-lint-backend:
 #   <<: *job-build-backend
