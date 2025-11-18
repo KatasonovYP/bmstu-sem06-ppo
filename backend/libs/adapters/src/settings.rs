@@ -14,6 +14,7 @@ use serde_derive::Deserialize;
 pub struct Settings {
     pub log_level: String,
     pub log_filepath: String,
+    pub use_mongo: bool,
     pub refresh_interval_sec: u64,
     pub notify_interval_sec: u64,
     pub moex_base_url: String,
@@ -33,6 +34,11 @@ pub struct Settings {
     pub admin_user_pid: String,
     pub e2e_token: SecretString,
     pub e2e_backend_taget_url: String,
+    pub mongo_user: String,
+    pub mongo_password: SecretString,
+    pub mongo_host: String,
+    pub mongo_port: String,
+    pub mongo_database: String,
 }
 
 impl Settings {
@@ -58,5 +64,20 @@ impl Settings {
             )
             .into(),
         )
+    }
+
+    pub fn build_mongo_connection_string(&self) -> SecretString {
+        let password = self.mongo_password.expose_secret();
+        if password.is_empty() {
+            SecretString::new(format!("mongodb://{}:{}/", self.mongo_host, self.mongo_port).into())
+        } else {
+            SecretString::new(
+                format!(
+                    "mongodb://{}:{}@{}:{}/",
+                    self.mongo_user, password, self.mongo_host, self.mongo_port
+                )
+                .into(),
+            )
+        }
     }
 }

@@ -34,7 +34,6 @@ use http::{
 };
 use middlewares::jwt_middleware::JwtAuth;
 use secrecy::ExposeSecret;
-use shaku::HasComponent;
 use tower_http::{
     cors::CorsLayer,
     normalize_path::NormalizePathLayer,
@@ -93,6 +92,17 @@ async fn main() {
     let settings = Settings::new("config/app.default.yaml").unwrap();
     let jwt_token = settings.telegram_bot_token.clone();
     let jwt_auth = Arc::new(JwtAuth::new(jwt_token.clone()));
+    if settings.use_mongo {
+        tracing::info!(
+            "Starting API with Mongo database `{}`",
+            settings.mongo_database
+        );
+    } else {
+        tracing::info!(
+            "Starting API with Postgres database `{}`",
+            settings.postgres_database
+        );
+    }
 
     let module = BuildAppModule::new(&settings).build().await;
 
@@ -151,26 +161,6 @@ async fn main() {
         .fallback(not_found_handler)
         .layer(cors)
         .layer(TraceLayer::new_for_http());
-
-    if true {
-        if true {
-            if true {
-                if true {
-                    if true {
-                        if true {
-                            if true {
-                                if true {
-                                    if false {
-                                        todo!();
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
 
     let router = NormalizePathLayer::trim_trailing_slash().layer(router);
 

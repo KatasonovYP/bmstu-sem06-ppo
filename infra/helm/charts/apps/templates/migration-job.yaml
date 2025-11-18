@@ -1,3 +1,4 @@
+{{- if .Values.postgres.enabled }}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -22,3 +23,4 @@ spec:
                 name: {{ .Values.meta.name }}-config
             - secretRef:
                 name: {{ .Values.meta.name }}-secret
+{{- end }}

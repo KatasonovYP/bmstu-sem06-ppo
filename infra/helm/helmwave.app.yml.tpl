@@ -1,4 +1,4 @@
-project: stocks-tracker-{{ requiredEnv "STAGE" }}{{ requiredEnv "TEST_ID" }}
+project: stocks-tracker-{{ requiredEnv "STAGE" }}{{ default "" (env "TEST_ID") }}
 version: 0.42.2
 
 
@@ -16,15 +16,11 @@ repositories:
 
 
 releases:
-{{- with readFile "./infra/helm/vars.yaml" | fromYaml | get "charts" }}
-{{- range $chart := . }}
-  - name: stocks-tracker-{{ requiredEnv "STAGE" }}{{ requiredEnv "TEST_ID" }}-{{ $chart }}
+  - name: stocks-tracker-{{ requiredEnv "STAGE" }}{{ default "" (env "TEST_ID") }}-apps
     namespace: stocks-tracker
     <<: *options
-    chart: ./infra/helm/charts/{{ $chart }}
+    chart: ./infra/helm/charts/apps
     values:
       - ./infra/helm/values/stocks-tracker-{{ requiredEnv "STAGE" }}-values.yaml
       - src: ./infra/helm/values/stocks-tracker-{{ requiredEnv "STAGE" }}-secrets.yaml
         renderer: sops
-{{- end }}
-{{- end }}

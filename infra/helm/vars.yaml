@@ -1,6 +1,0 @@
-charts:
-  - env
-  - patroni
-  - migration
-  - apps
-  - routing

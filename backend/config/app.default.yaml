@@ -1,5 +1,6 @@
 log_level: TRACE
 log_filepath: stdout
+use_mongo: false
 
 refresh_interval_sec: 5
 
@@ -22,6 +23,12 @@ postgres_password: set this var via .env
 postgres_host: localhost
 postgres_port: 5432
 postgres_database: postgres
+
+mongo_user: ""
+mongo_password: set this var via .env
+mongo_host: localhost
+mongo_port: 27017
+mongo_database: stocks_tracker
 
 admin_user_login: demo@sea-ql.org
 admin_user_pid: 79a6243b-088d-5d95-9b16-a2d1689e291f

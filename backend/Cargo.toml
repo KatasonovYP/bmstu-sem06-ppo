@@ -46,6 +46,9 @@ jsonwebtoken = "9.3.1"
 sea-orm = "1.1.8"
 seaography = "1.1.1"
 redis = "0.30.0"
+mongodb = { version = "2.8.2", default-features = false, features = [
+    "tokio-runtime",
+] }
 axum-static-s3 = "0.1.2"
 aws-config = "1.1.7"
 aws-sdk-s3 = "1.108.0"

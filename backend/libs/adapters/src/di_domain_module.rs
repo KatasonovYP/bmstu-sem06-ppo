@@ -16,7 +16,11 @@ use domain::services::{
 use redis::aio::MultiplexedConnection;
 use sea_orm::DatabaseConnection;
 use secrecy::ExposeSecret;
-use shaku::module;
+use shaku::{
+    HasComponent,
+    Interface,
+    module,
+};
 use teloxide::Bot;
 use tokio::sync::Mutex;
 
@@ -24,6 +28,14 @@ use crate::{
     moex::{
         MoexExchangeRepository,
         MoexExchangeRepositoryParameters,
+    },
+    mongodb::{
+        MongoActiveRepository,
+        MongoConnectionPool,
+        MongoConnectionPoolParameters,
+        MongoNotificationRepository,
+        MongoSentRepository,
+        MongoUserRepository,
     },
     postgres::{
         PostgresActiveRepository,
@@ -47,7 +59,7 @@ use crate::{
 };
 
 module! {
-    pub DomainModule {
+    pub PostgresDomainModule {
         components = [
             PostgresConnectionPool,
             PostgresUserRepository,
@@ -69,6 +81,48 @@ module! {
     }
 }
 
+module! {
+    pub MongoDomainModule {
+        components = [
+            MongoConnectionPool,
+            MongoUserRepository,
+            MongoActiveRepository,
+            MongoNotificationRepository,
+            MongoSentRepository,
+            RedisPriceCacheRepository,
+            TelegramNotificationSender,
+            MoexExchangeRepository,
+            PriceOpsService,
+            UserService,
+            ActiveService,
+            NotificationService,
+            SentService,
+            LimitMonitorService,
+            PriceCacheService,
+        ],
+        providers = []
+    }
+}
+
+pub enum DomainModule {
+    Postgres(PostgresDomainModule),
+    Mongo(MongoDomainModule),
+}
+
+impl DomainModule {
+    pub fn resolve<T>(&self) -> Arc<T>
+    where
+        T: Interface + ?Sized,
+        PostgresDomainModule: HasComponent<T>,
+        MongoDomainModule: HasComponent<T>,
+    {
+        match self {
+            DomainModule::Postgres(module) => module.resolve(),
+            DomainModule::Mongo(module) => module.resolve(),
+        }
+    }
+}
+
 pub struct BuildAppModule<'a> {
     settings: &'a Settings,
 }
@@ -82,13 +136,25 @@ impl<'a> BuildAppModule<'a> {
         self.init_logger();
         tracing::debug!("app: start building");
         tracing::debug!("settings: {:?}", self.settings);
-        let postgres_connection_pool = self.init_postgres_connection_pool().await;
-        let redis_connection_pool = self.init_redis_connection_pool().await;
-        let module = self
-            .init_di_module(postgres_connection_pool, redis_connection_pool)
-            .await;
-        tracing::debug!("app: builded successfully");
-        module
+        if self.settings.use_mongo {
+            tracing::info!("Initializing Mongo storage backend");
+            let mongo_database = self.init_mongo_database().await;
+            let redis_connection_pool = self.init_redis_connection_pool().await;
+            let module = self
+                .init_mongo_di_module(mongo_database, redis_connection_pool)
+                .await;
+            tracing::debug!("app: builded successfully");
+            DomainModule::Mongo(module)
+        } else {
+            tracing::info!("Initializing Postgres storage backend");
+            let postgres_connection_pool = self.init_postgres_connection_pool().await;
+            let redis_connection_pool = self.init_redis_connection_pool().await;
+            let module = self
+                .init_postgres_di_module(postgres_connection_pool, redis_connection_pool)
+                .await;
+            tracing::debug!("app: builded successfully");
+            DomainModule::Postgres(module)
+        }
     }
 
     async fn init_postgres_connection_pool(&self) -> Arc<DatabaseConnection> {
@@ -105,6 +171,21 @@ impl<'a> BuildAppModule<'a> {
         postgres_connection_pool
     }
 
+    async fn init_mongo_database(&self) -> Arc<mongodb::Database> {
+        tracing::debug!("mongo: start init");
+        let database = MongoConnectionPool::connect(
+            self.settings
+                .build_mongo_connection_string()
+                .expose_secret(),
+            &self.settings.mongo_database,
+        )
+        .await
+        .unwrap();
+        tracing::debug!("mongo: inited successfully");
+
+        database
+    }
+
     async fn init_redis_connection_pool(&self) -> MultiplexedConnection {
         tracing::debug!("redis: start init");
         let redis_connection_pool =
@@ -118,13 +199,13 @@ impl<'a> BuildAppModule<'a> {
         redis_connection_pool
     }
 
-    async fn init_di_module(
+    async fn init_postgres_di_module(
         &self,
         postgres_connection_pool: Arc<DatabaseConnection>,
         redis_connection_pool: MultiplexedConnection,
-    ) -> DomainModule {
-        tracing::debug!("di module: start init");
-        let mudule = DomainModule::builder()
+    ) -> PostgresDomainModule {
+        tracing::debug!("postgres di module: start init");
+        let module = PostgresDomainModule::builder()
             .with_component_parameters::<PostgresConnectionPool>(PostgresConnectionPoolParameters {
                 connection: postgres_connection_pool,
             })
@@ -144,9 +225,40 @@ impl<'a> BuildAppModule<'a> {
             })
             .build();
 
-        tracing::debug!("di module: inited successfully");
+        tracing::debug!("postgres di module: inited successfully");
 
-        mudule
+        module
+    }
+
+    async fn init_mongo_di_module(
+        &self,
+        mongo_database: Arc<mongodb::Database>,
+        redis_connection_pool: MultiplexedConnection,
+    ) -> MongoDomainModule {
+        tracing::debug!("mongo di module: start init");
+        let module = MongoDomainModule::builder()
+            .with_component_parameters::<MongoConnectionPool>(MongoConnectionPoolParameters {
+                database: mongo_database,
+            })
+            .with_component_parameters::<RedisPriceCacheRepository>(
+                RedisPriceCacheRepositoryParameters {
+                    connection: Arc::new(Mutex::new(redis_connection_pool)),
+                },
+            )
+            .with_component_parameters::<TelegramNotificationSender>(
+                TelegramNotificationSenderParameters {
+                    bot: Arc::new(Bot::new(self.settings.telegram_bot_token.expose_secret())),
+                },
+            )
+            .with_component_parameters::<MoexExchangeRepository>(MoexExchangeRepositoryParameters {
+                client: reqwest::Client::new(),
+                base_url: self.settings.moex_base_url.clone(),
+            })
+            .build();
+
+        tracing::debug!("mongo di module: inited successfully");
+
+        module
     }
 
     fn init_logger(&self) {

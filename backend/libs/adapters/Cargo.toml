@@ -40,6 +40,7 @@ chrono = { workspace = true }
 dotenvy = { workspace = true }
 shaku = { workspace = true }
 secrecy = { workspace = true, features = ["serde"] }
+mongodb = { workspace = true }
 
 # Logging and tracing
 log = { workspace = true }
