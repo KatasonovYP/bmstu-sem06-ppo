@@ -1,8 +1,3 @@
-include:
-  - component: ${CI_SERVER_FQDN}/${CI_PROJECT_PATH}/build-backend@${CI_COMMIT_SHA}
-    inputs:
-      stage: build
-
 workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -32,27 +27,27 @@ stages:
   - deploy-production
   - allure-report
 
-# .job-build-backend: &job-build-backend
-#   image: ${REGISTRY}/backend-builder:latest
-#   variables:
-#     RUSTC_WRAPPER: sccache
-#     SCCACHE_BUCKET: stocks-tracker-cache
-#     SCCACHE_REGION: ru-central1
-#     SCCACHE_ENDPOINT: storage.yandexcloud.net
-#     SCCACHE_S3_KEY_PREFIX: cache/sccache
-#     # SCCACHE_DIR: ${CI_PROJECT_DIR}/sccache
-#     # SCCACHE_CACHE_SIZE: 5G
-#   dependencies: []
-#   cache:
-#     - key: sccache-local
-#       policy: pull-push
-#       paths:
-#         - ${SCCACHE_DIR}
-#   before_script:
-#     sccache --zero-stats || true
-#     sccache --start-server
-#   after_script:
-#     - sccache --show-stats || true
+.job-build-backend: &job-build-backend
+  image: ${REGISTRY}/backend-builder:latest
+  variables:
+    RUSTC_WRAPPER: sccache
+    SCCACHE_BUCKET: stocks-tracker-cache
+    SCCACHE_REGION: ru-central1
+    SCCACHE_ENDPOINT: storage.yandexcloud.net
+    SCCACHE_S3_KEY_PREFIX: cache/sccache
+    # SCCACHE_DIR: ${CI_PROJECT_DIR}/sccache
+    # SCCACHE_CACHE_SIZE: 5G
+  dependencies: []
+  cache:
+    - key: sccache-local
+      policy: pull-push
+      paths:
+        - ${SCCACHE_DIR}
+  before_script:
+    sccache --zero-stats || true
+    sccache --start-server
+  after_script:
+    - sccache --show-stats || true
 
 .job-kaniko-push: &job-kaniko-push
   image:
@@ -143,32 +138,35 @@ job-complexity-backend:
   script:
     - ./infra/ci/scripts/job-complexity-backend.sh
 
-# job-build-backend:
-#   <<: *job-build-backend
-#   stage: build
-#   needs:
-#     - job: job-build-push-ci-images
-#       optional: true
-#   cache:
-#     - key: sccache-local
-#       policy: pull-push
-#       paths:
-#         - ${SCCACHE_DIR}
-#     - key: backend-bin
-#       policy: push
-#       paths:
-#         - backend/bin
-#     - key: backend-tests
-#       policy: push
-#       paths:
-#         - backend/tests
-#         - backend/allure-results
-#   artifacts:
-#     when: always
-#     paths:
-#       - ./backend/cargo-timings
-#   script:
-#     - bash -x ./infra/ci/scripts/job-build-backend.sh
+job-build-backend:
+  <<: *job-build-backend
+  stage: build
+  needs:
+    - job: job-build-push-ci-images
+      optional: true
+  cache:
+    - key: sccache-local
+      policy: pull-push
+      paths:
+        - ${SCCACHE_DIR}
+    - key: backend-bin
+      policy: push
+      paths:
+        - backend/bin
+    - key: backend-tests
+      policy: push
+      paths:
+        - backend/tests
+        - backend/allure-results
+  artifacts:
+    when: always
+    paths:
+      - ./backend/cargo-timings
+  script:
+    - cd ./backend || exit 0
+    - bash -x ./infra/ci/scripts/job-build-backend-apps.sh
+    - bash -x ./infra/ci/scripts/job-build-backend-tests.sh
+    - bash -x ./infra/ci/scripts/job-build-backend-mocks.sh
 
 job-push-backend:
   <<: *job-kaniko-push

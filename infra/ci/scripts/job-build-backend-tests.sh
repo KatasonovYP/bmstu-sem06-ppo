@@ -1,7 +1,5 @@
 #!/bin/bash
 
-cd ./backend || exit 0
-
 mkdir -p ./tests
 
 cargo +nightly nextest archive --release --archive-file ./tests/unit.tar.zst --lib
