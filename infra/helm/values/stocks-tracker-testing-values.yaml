@@ -12,7 +12,7 @@ ingress:
 
 env:
     APP_POSTGRES_USER: postgres
-    APP_POSTGRES_HOST: patroni-testing.patroni.svc
+    APP_POSTGRES_HOST: stocks-tracker-testing-postgres-service.stocks-tracker.svc
     APP_POSTGRES_PORT: '5432'
     APP_POSTGRES_DATABASE: postgres
     APP_MONGO_USER: ""

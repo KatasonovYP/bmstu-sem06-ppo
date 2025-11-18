@@ -23,7 +23,7 @@ spec:
       containers:
         - name: {{ .Values.meta.name }}-notifier
           image: "{{ .Values.image.repository }}/notifier:{{ .Values.image.tag }}"
-          command: {{ .Values.image.command }}
+          command: ["./notifier"]
           imagePullPolicy: IfNotPresent
           envFrom:
             - configMapRef:

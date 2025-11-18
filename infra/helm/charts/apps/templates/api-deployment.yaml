@@ -24,8 +24,8 @@ spec:
     spec:
       containers:
         - name: {{ .Values.meta.name }}-api
-          image: "{{ .Values.image.repository }}/api:{{ .Values.image.tag }}"
-          command: {{ .Values.image.command }}
+          image: "{{ .Values.image.repository }}/apps:{{ .Values.image.tag }}"
+          command: ["./api"]
           imagePullPolicy: IfNotPresent
           readinessProbe:
             httpGet:

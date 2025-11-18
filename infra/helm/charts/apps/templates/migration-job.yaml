@@ -11,13 +11,13 @@ spec:
       restartPolicy: OnFailure
       containers:
         - name: {{ .Values.meta.name }}-migration
-          image: "{{ .Values.image.repository }}/migration:{{ .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}/apps:{{ .Values.image.tag }}"
           command: ["/bin/sh", "-c"]
           args:
             - |
-              export POSTGRES_CONNECTION_STRING="postgres://${APP_POSTGRES_USER}:${APP_POSTGRES_PASSWORD}@${APP_POSTGRES_HOST}:${APP_POSTGRES_PORT}/${APP_POSTGRES_DATABASE}"; 
-              echo $POSTGRES_CONNECTION_STRING
-              /app/app up --database-url $POSTGRES_CONNECTION_STRING
+              export APP_POSTGRES_CONNECTION_STRING="postgres://${APP_POSTGRES_USER}:${APP_POSTGRES_PASSWORD}@${APP_POSTGRES_HOST}:${APP_POSTGRES_PORT}/${APP_POSTGRES_DATABASE}"; 
+              echo $APP_POSTGRES_CONNECTION_STRING
+              /app/migration up --database-url $APP_POSTGRES_CONNECTION_STRING
           envFrom:
             - configMapRef:
                 name: {{ .Values.meta.name }}-config

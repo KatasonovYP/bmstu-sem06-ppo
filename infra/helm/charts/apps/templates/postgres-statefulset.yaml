@@ -23,14 +23,11 @@ spec:
               name: postgres
           env:
             - name: POSTGRES_DB
-              value: "stocks_tracker"
+              value: "postgres"
             - name: POSTGRES_USER
               value: "postgres"
             - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.meta.name }}-env
-                  key: APP_POSTGRES_PASSWORD
+              value: "postgres"
           volumeMounts:
             - name: postgres-data
               mountPath: /var/lib/postgresql/data

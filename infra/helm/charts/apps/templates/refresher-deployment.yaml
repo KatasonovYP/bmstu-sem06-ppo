@@ -26,7 +26,7 @@ spec:
       containers:
         - name: {{ .Values.meta.name }}-refresher
           image: "{{ .Values.image.repository }}/refresher:{{ .Values.image.tag }}"
-          command: {{ .Values.image.command }}
+          command: ["./refresher"]
           imagePullPolicy: IfNotPresent
           envFrom:
             - configMapRef:
