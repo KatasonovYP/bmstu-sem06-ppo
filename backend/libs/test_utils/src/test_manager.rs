@@ -31,7 +31,7 @@ pub struct TestManager {
 impl TestManager {
     pub async fn default() -> Self {
         let settings = Settings::new("../../config/app.default.yaml").unwrap();
-        
+
         tracing::debug!("{settings:?}");
         let connect_options =
             ConnectOptions::new(settings.build_postgres_connection_string().expose_secret())
