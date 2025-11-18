@@ -23,8 +23,8 @@ app:
 
 features:
   admin: false
-  mongodb: false
-  postgres: true
+  mongodb: true
+  postgres: false
   redis: false
   refresher: false
   notifier: false

@@ -20,4 +20,4 @@ env:
     APP_MONGO_HOST: stocks-tracker-testing-mongodb-service
     APP_MONGO_PORT: "27017"
     APP_MONGO_DATABASE: stocks_tracker
-    APP_USE_MONGO: "false"
+    APP_USE_MONGO: "true"
