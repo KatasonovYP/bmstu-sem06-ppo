@@ -43,6 +43,15 @@ stages:
       policy: pull-push
       paths:
         - ${SCCACHE_DIR}
+    - key: backend-bin
+      policy: push
+      paths:
+        - backend/bin
+    - key: backend-tests
+      policy: push
+      paths:
+        - backend/tests
+        - backend/allure-results
   before_script:
     sccache --zero-stats || true
     sccache --start-server
@@ -144,24 +153,10 @@ job-build-backend:
   needs:
     - job: job-build-push-ci-images
       optional: true
-  cache:
-    - key: sccache-local
-      policy: pull-push
-      paths:
-        - ${SCCACHE_DIR}
-    - key: backend-bin
-      policy: push
-      paths:
-        - backend/bin
-    - key: backend-tests
-      policy: push
-      paths:
-        - backend/tests
-        - backend/allure-results
   artifacts:
     when: always
     paths:
-      - ./backend/cargo-timings
+      - backend/cargo-timings
   script:
     - cd ./backend || exit 0
     - bash -x ./infra/ci/scripts/job-build-backend-apps.sh
