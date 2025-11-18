@@ -4,6 +4,7 @@ WORKDIR /app
 
 RUN addgroup -S appuser && adduser -S appuser -G appuser
 
+COPY --chown=appuser:appuser config/app.default.yaml /app/config/
 COPY --chown=appuser:appuser ./bin /app
 
 USER appuser
