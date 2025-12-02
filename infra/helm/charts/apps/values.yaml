@@ -20,11 +20,22 @@ port: 3000
 
 app:
   replicas: 1
+  node_port: 31000
+
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: gitlab-runner
+              operator: In
+              values:
+                - "true"
 
 features:
   admin: false
-  mongodb: true
-  postgres: false
+  mongodb: false
+  postgres: true
   redis: false
   refresher: false
   notifier: false
@@ -72,11 +83,11 @@ mongodb:
     tag: "7.0"
   resources:
     limits:
-      cpu: 200m
-      memory: 256Mi
+      cpu: 500m
+      memory: 512Mi
     requests:
-      cpu: 100m
-      memory: 128Mi
+      cpu: 500m
+      memory: 512Mi
   storage:
     size: 5Gi
 
@@ -87,10 +98,10 @@ postgres:
     tag: "16-alpine"
   resources:
     limits:
-      cpu: 200m
-      memory: 256Mi
+      cpu: 500m
+      memory: 512Mi
     requests:
-      cpu: 100m
-      memory: 128Mi
+      cpu: 500m
+      memory: 512Mi
   storage:
     size: 5Gi

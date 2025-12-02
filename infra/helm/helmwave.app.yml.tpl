@@ -17,7 +17,7 @@ repositories:
 
 releases:
   - name: stocks-tracker-{{ requiredEnv "STAGE" }}{{ default "" (env "TEST_ID") }}-apps
-    namespace: stocks-tracker
+    namespace: stocks-tracker-{{ requiredEnv "STAGE" }}{{ default "" (env "TEST_ID") }}
     <<: *options
     chart: ./infra/helm/charts/apps
     values:

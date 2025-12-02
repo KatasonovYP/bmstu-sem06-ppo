@@ -3,8 +3,25 @@ rbac:
 
 server:
   useExistingClusterRoleName: prometheus-stack-kube-prom-admission
+  retention: 7d
 
 prometheus:
   prometheusSpec:
-    ScrapeInterval: 5s
+    scrapeInterval: 5s
     evaluationInterval: 5s
+    additionalScrapeConfigs:
+      - job_name: 'pushgateway'
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names:
+                - prometheus-pushgateway
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_name]
+            action: keep
+            regex: prometheus-pushgateway
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            action: keep
+            regex: http
+        honor_labels: true
+        scrape_interval: 5s

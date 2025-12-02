@@ -57,6 +57,12 @@ releases:
       - src: infra/helm/values/prometheus-secrets.yaml
         renderer: sops
 
+  - name: prometheus-pushgateway
+    namespace: prometheus-pushgateway
+    <<: *options
+    chart:
+      name: prometheus-community/prometheus-pushgateway
+
   - name: loki-stack
     namespace: loki
     <<: *options

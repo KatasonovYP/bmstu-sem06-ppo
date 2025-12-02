@@ -22,6 +22,15 @@ spec:
       labels:
         app: {{ .Values.meta.name }}-api
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: gitlab-runner
+                    operator: In
+                    values:
+                      - "true"
       containers:
         - name: {{ .Values.meta.name }}-api
           image: "{{ .Values.image.repository }}/apps:{{ .Values.image.tag }}"
@@ -34,8 +43,8 @@ spec:
               httpHeaders:
                 - name: Host
                   value: {{ .Values.ingress.api.host }}
-            initialDelaySeconds: 15
-            periodSeconds: 10
+            initialDelaySeconds: 5
+            periodSeconds: 5
           envFrom:
             - configMapRef:
                 name: {{ .Values.meta.name }}-config

@@ -1,5 +1,6 @@
 meta:
   name: stocks-tracker-stress{{ env "TEST_ID" }}
+  namespace: stocks-tracker-stress{{ env "TEST_ID" }}
 
 image:
   tag: '{{ env "CI_COMMIT_SHORT_SHA" }}'
@@ -7,21 +8,25 @@ image:
 ingress:
   api:
     host: api.stress.stocks-tracker.ru
-    path: /{{ env "TEST_ID" }}
+    path: /
   admin:
     host: admin.stress.stocks-tracker.ru
-    path: /{{ env "TEST_ID" }}
+    path: /
+
+app:
+  node_port: '{{ env "NODE_PORT" }}'
 
 env:
     APP_POSTGRES_USER: postgres
-    # APP_POSTGRES_HOST: stocks-tracker-stress{{ env "TEST_ID" }}-postgres-service
-    APP_POSTGRES_HOST: stocks-tracker-stress-postgres-service
+    APP_POSTGRES_HOST: stocks-tracker-stress{{ env "TEST_ID" }}-postgres-service
+    # APP_POSTGRES_HOST: stocks-tracker-stress-postgres-service
     APP_POSTGRES_PORT: '5432'
     APP_POSTGRES_DATABASE: postgres
     APP_MONGO_USER: ""
     APP_MONGO_PASSWORD: ""
-    # APP_MONGO_HOST: stocks-tracker-stress{{ env "TEST_ID" }}-mongodb-service
-    APP_MONGO_HOST: stocks-tracker-stress-mongodb-service
+    APP_MONGO_HOST: stocks-tracker-stress{{ env "TEST_ID" }}-mongodb-service
+    # APP_MONGO_HOST: stocks-tracker-stress-mongodb-service
     APP_MONGO_PORT: "27017"
     APP_MONGO_DATABASE: stocks_tracker
-    APP_USE_MONGO: "true"
+    APP_USE_MONGO: "false"
+    APP_LOG_LEVEL: DEBUG
