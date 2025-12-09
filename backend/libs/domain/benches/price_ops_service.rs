@@ -1,11 +1,11 @@
+use std::sync::Arc;
+
 use criterion::{
+    Criterion,
     black_box,
     criterion_group,
     criterion_main,
-    Criterion,
 };
-use std::sync::Arc;
-
 use domain::{
     models::ActiveEntity,
     ports::{
