@@ -254,7 +254,7 @@ job-benchmark-backend:
   image: ${REGISTRY}/backend-builder:latest
   script:
     - cd backend
-    - cargo benchmark
+    - cargo bench
   artifacts:
     paths:
       - ./backend/allure-report
