@@ -1,0 +1,29 @@
+gitlabUrl: https://plus-specialprojects.gitlab.yandexcloud.net
+
+rbac:
+  create: true
+
+serviceAccount:
+  create: true
+  name: gitlab-runner-pigeon
+
+nodeSelector:
+  gitlab-runner: 'true'
+
+resourcesPreset: 2xlarge
+
+runners:
+  # kubernetes:
+  #   volumes:
+  #     pvc:
+  #       - name: runners-cache
+  #         mountPath: /cache
+  #   node_selector:
+  #     gitlab-runner: 'true'
+  config: |
+    [[runners]]
+      [runners.kubernetes.node_selector]
+        gitlab-runner = "true"
+      [[runners.kubernetes.volumes.pvc]]
+        name = "runners-cache"
+        mount_path = "/cache"

@@ -47,6 +47,17 @@ releases:
       - src: infra/helm/values/gitlab-runner-secrets.yaml
         renderer: sops
 
+  - name: gitlab-runner-pigeon
+    namespace: gitlab
+    <<: *options
+    chart:
+      name: gitlab/gitlab-runner
+      version: 0.82.0
+    values:
+      - infra/helm/values/gitlab-runner-pigeon-values.yaml
+      - src: infra/helm/values/gitlab-runner-pigeon-secrets.yaml
+        renderer: sops
+
   - name: prometheus-stack
     namespace: prometheus
     <<: *options
