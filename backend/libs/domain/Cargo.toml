@@ -22,3 +22,11 @@ tracing = { workspace = true, features = ["attributes"] }
 mockall = { workspace = true }
 fake = { workspace = true, features = ["chrono", "derive"] }
 shaku = { workspace = true }
+
+[dev-dependencies]
+criterion = { workspace = true }
+fake = { workspace = true, features = ["chrono", "derive"] }
+
+[[bench]]
+name = "price_ops_service"
+harness = false

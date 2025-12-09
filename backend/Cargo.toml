@@ -100,6 +100,7 @@ mockall = "0.13.1"
 fake = "4.3"
 config = "0.15.11"
 rstest = "0.26.1"
+criterion = { version = "0.5", features = ["async_tokio"] }
 
 [patch.crates-io]
 sea-orm = { git = 'https://github.com/KatasonovYP/sea-orm.git', branch = 'fix/seaography-mock' }

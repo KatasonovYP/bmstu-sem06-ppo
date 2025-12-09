@@ -241,6 +241,26 @@ job-deploy-backend-production:
   variables:
     STAGE: production
 
+job-benchmark-backend:
+  stage: test-unit
+  when: always
+  needs:
+    - job-build-backend
+  cache:
+    - key: backend-tests
+      policy: pull
+      paths:
+        - backend/allure-results
+  image: ${REGISTRY}/backend-builder:latest
+  script:
+    - cd backend
+    - cargo benchmark
+  artifacts:
+    paths:
+      - ./backend/allure-report
+    reports:
+      junit: ./backend/allure-results/*.xml
+
 job-allure-report:
   stage: allure-report
   when: always
